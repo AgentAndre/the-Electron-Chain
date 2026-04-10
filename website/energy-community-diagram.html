@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEC — Energiegemeinschaft Schematic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080c10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'IBM Plex Sans', sans-serif;
+    padding: 40px 20px;
+  }
+  .diagram-wrap {
+    width: 100%;
+    max-width: 1200px;
+  }
+</style>
+</head>
+<body>
+<div class="diagram-wrap">
+<svg viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080c10"/>
+      <stop offset="100%" stop-color="#0d1520"/>
+    </linearGradient>
+    <radialGradient id="smgwGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vnbGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="peaqGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="houseGlowA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="houseGlowB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="houseGlowC" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Arrow markers -->
+    <marker id="arrowCyan" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#00d4ff" opacity="0.8"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#f59e0b" opacity="0.8"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#a855f7" opacity="0.8"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#22c55e" opacity="0.8"/>
+    </marker>
+    <marker id="arrowCyanRev" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="7 0, 0 3.5, 7 7" fill="#00d4ff" opacity="0.8"/>
+    </marker>
+
+    <!-- Dash animation -->
+    <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Clip -->
+    <clipPath id="roundClip">
+      <rect x="0" y="0" width="1200" height="820" rx="0"/>
+    </clipPath>
+  </defs>
+
+  <!-- BACKGROUND -->
+  <rect width="1200" height="820" fill="url(#bgGrad)"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.04" stroke="#00d4ff" stroke-width="0.5">
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+    <line x1="0" y1="600" x2="1200" y2="600"/>
+    <line x1="0" y1="700" x2="1200" y2="700"/>
+    <line x1="100" y1="0" x2="100" y2="820"/>
+    <line x1="200" y1="0" x2="200" y2="820"/>
+    <line x1="300" y1="0" x2="300" y2="820"/>
+    <line x1="400" y1="0" x2="400" y2="820"/>
+    <line x1="500" y1="0" x2="500" y2="820"/>
+    <line x1="600" y1="0" x2="600" y2="820"/>
+    <line x1="700" y1="0" x2="700" y2="820"/>
+    <line x1="800" y1="0" x2="800" y2="820"/>
+    <line x1="900" y1="0" x2="900" y2="820"/>
+    <line x1="1000" y1="0" x2="1000" y2="820"/>
+    <line x1="1100" y1="0" x2="1100" y2="820"/>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TITLE -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <text x="32" y="44" font-family="Space Mono, monospace" font-size="10" fill="#00d4ff" letter-spacing="3" opacity="0.7">THE ELECTRON CHAIN</text>
+  <text x="32" y="68" font-family="Syne, sans-serif" font-weight="800" font-size="22" fill="#e2eaf5" letter-spacing="-0.5">Energiegemeinschaft — SMGW als Vertrauensanker</text>
+  <text x="32" y="90" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#6b8aaa">§ 42c EnWG · BSI TR-03109 · peaq DID · Bilanzkreis-Settlement</text>
+
+  <!-- Divider -->
+  <line x1="32" y1="105" x2="1168" y2="105" stroke="#1e3050" stroke-width="1"/>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ZONE LABELS (background bands) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Zone: Kundenseite -->
+  <rect x="32" y="114" width="560" height="510" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="48" y="133" font-family="Space Mono, monospace" font-size="8.5" fill="#344a66" letter-spacing="2">KUNDENSEITE — LOKALE PROSUMER</text>
+
+  <!-- Zone: Marktseite -->
+  <rect x="620" y="114" width="548" height="510" rx="2" fill="#0a1018" stroke="#1e3050" stroke-width="1"/>
+  <text x="636" y="133" font-family="Space Mono, monospace" font-size="8.5" fill="#344a66" letter-spacing="2">MARKT- UND NETZSEITE</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HOUSE A — Prosumer (PV + Speicher + Wallbox) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="148" cy="250" r="70" fill="url(#houseGlowA)" opacity="0.8"/>
+
+  <!-- House icon -->
+  <rect x="110" y="220" width="76" height="58" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1.5"/>
+  <!-- Roof -->
+  <polygon points="104,222 148,188 192,222" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.7"/>
+  <!-- Door -->
+  <rect x="136" y="248" width="24" height="30" rx="1" fill="#0d1520" stroke="#344a66" stroke-width="1"/>
+  <!-- Windows -->
+  <rect x="116" y="228" width="16" height="14" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="164" y="228" width="16" height="14" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <!-- PV panels on roof -->
+  <rect x="124" y="196" width="10" height="7" rx="0.5" fill="#00d4ff" opacity="0.35"/>
+  <rect x="136" y="193" width="10" height="7" rx="0.5" fill="#00d4ff" opacity="0.45"/>
+  <rect x="148" y="193" width="10" height="7" rx="0.5" fill="#00d4ff" opacity="0.45"/>
+  <rect x="160" y="196" width="10" height="7" rx="0.5" fill="#00d4ff" opacity="0.35"/>
+
+  <text x="148" y="300" text-anchor="middle" font-family="Space Mono, monospace" font-size="8.5" fill="#6b8aaa" letter-spacing="1">PROSUMER A</text>
+  <text x="148" y="313" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">PV · BESS · Wallbox</text>
+
+  <!-- Flexibility badge -->
+  <rect x="102" y="318" width="92" height="18" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="148" y="330" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#22c55e">+3.8 kWh Überschuss</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HOUSE B — Verbraucher -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="148" cy="450" r="70" fill="url(#houseGlowB)" opacity="0.6"/>
+
+  <rect x="110" y="420" width="76" height="58" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1.5"/>
+  <polygon points="104,422 148,388 192,422" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="0.7"/>
+  <rect x="136" y="448" width="24" height="30" rx="1" fill="#0d1520" stroke="#344a66" stroke-width="1"/>
+  <rect x="116" y="428" width="16" height="14" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="164" y="428" width="16" height="14" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+
+  <text x="148" y="500" text-anchor="middle" font-family="Space Mono, monospace" font-size="8.5" fill="#6b8aaa" letter-spacing="1">PROSUMER B</text>
+  <text x="148" y="513" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Wärmepumpe · Speicher</text>
+
+  <rect x="102" y="518" width="92" height="18" rx="1" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="148" y="530" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#f59e0b">−2.1 kWh Bedarf</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HOUSE C — Mieter / Nur-Verbraucher -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="148" cy="570" r="50" fill="url(#houseGlowC)" opacity="0.5"/>
+  <!-- Apartment icon (simplified) -->
+  <rect x="116" y="550" width="64" height="52" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1.5"/>
+  <rect x="122" y="556" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="140" y="556" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="158" y="556" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="122" y="573" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="140" y="573" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="158" y="573" width="14" height="12" rx="0.5" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <rect x="136" y="587" width="16" height="15" rx="0" fill="#0d1520" stroke="#344a66" stroke-width="1"/>
+
+  <text x="148" y="622" text-anchor="middle" font-family="Space Mono, monospace" font-size="8.5" fill="#6b8aaa" letter-spacing="1">MIETER C</text>
+  <text x="148" y="635" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Nur-Verbraucher</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SMGW / HEMS BOX — CENTER LEFT -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="370" cy="390" r="110" fill="url(#smgwGlow)"/>
+
+  <!-- Outer frame -->
+  <rect x="285" y="310" width="185" height="220" rx="3" fill="#0d1520" stroke="#00d4ff" stroke-width="1.5" opacity="0.9"/>
+  <!-- Inner accent top bar -->
+  <rect x="285" y="310" width="185" height="22" rx="3" fill="#00d4ff" opacity="0.08"/>
+
+  <!-- Header -->
+  <text x="370" y="324" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#00d4ff" letter-spacing="2">SMGW / HEMS</text>
+  <text x="370" y="336" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66" letter-spacing="1">BSI TR-03109</text>
+
+  <!-- Divider -->
+  <line x1="295" y1="342" x2="460" y2="342" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- SMGW ID block -->
+  <rect x="295" y="349" width="165" height="42" rx="2" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="303" y="361" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="1">SMGW-ID</text>
+  <text x="303" y="376" font-family="Space Mono, monospace" font-size="8.5" fill="#00d4ff">DE000123456789</text>
+  <text x="303" y="387" font-family="Space Mono, monospace" font-size="7" fill="#344a66">MeteringPointID · OBIS</text>
+
+  <!-- Cert block -->
+  <rect x="295" y="398" width="78" height="52" rx="2" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="303" y="411" font-family="Space Mono, monospace" font-size="7" fill="#344a66">TLS-ZERTIFIKAT</text>
+  <!-- Cert icon lines -->
+  <rect x="303" y="416" width="40" height="3" rx="1" fill="#00d4ff" opacity="0.4"/>
+  <rect x="303" y="422" width="28" height="3" rx="1" fill="#00d4ff" opacity="0.2"/>
+  <rect x="303" y="428" width="34" height="3" rx="1" fill="#00d4ff" opacity="0.3"/>
+  <text x="303" y="444" font-family="Space Mono, monospace" font-size="6.5" fill="#22c55e">✓ BSI-konform</text>
+
+  <!-- DID block -->
+  <rect x="381" y="398" width="79" height="52" rx="2" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="388" y="411" font-family="Space Mono, monospace" font-size="7" fill="#344a66">peaq DID</text>
+  <text x="388" y="424" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">did:peaq:</text>
+  <text x="388" y="436" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">0xA3f7...</text>
+  <text x="388" y="448" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">on-chain ID</text>
+
+  <!-- Flexibility aggregation bar -->
+  <rect x="295" y="458" width="165" height="34" rx="2" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="303" y="470" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="1">FLEX-AGGREGATION</text>
+  <!-- Bar visual -->
+  <rect x="303" y="475" width="140" height="6" rx="1" fill="#1e3050"/>
+  <rect x="303" y="475" width="95" height="6" rx="1" fill="#22c55e" opacity="0.7"/>
+  <text x="449" y="483" text-anchor="end" font-family="Space Mono, monospace" font-size="6.5" fill="#22c55e">68%</text>
+
+  <!-- Status row -->
+  <rect x="295" y="500" width="165" height="22" rx="2" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <circle cx="304" cy="511" r="3" fill="#22c55e"/>
+  <text x="312" y="514" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">LIVE · 15min-Intervall · verschlüsselt</text>
+
+  <!-- SMGW label below -->
+  <text x="370" y="544" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#00d4ff" opacity="0.6" letter-spacing="1.5">VERTRAUENSANKER DER GEMEINSCHAFT</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ARROWS: Houses → SMGW -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- A → SMGW -->
+  <line x1="197" y1="260" x2="283" y2="340" stroke="#00d4ff" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#arrowCyan)" opacity="0.6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.5s" repeatCount="indefinite"/>
+  </line>
+  <text x="228" y="292" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff" opacity="0.7" transform="rotate(-34 228 292)">Messwerte+Flex</text>
+
+  <!-- B → SMGW -->
+  <line x1="197" y1="440" x2="283" y2="400" stroke="#22c55e" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#arrowGreen)" opacity="0.6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.8s" repeatCount="indefinite"/>
+  </line>
+  <text x="230" y="427" font-family="Space Mono, monospace" font-size="7" fill="#22c55e" opacity="0.7" transform="rotate(22 230 427)">Messwerte+Flex</text>
+
+  <!-- C → SMGW -->
+  <line x1="197" y1="570" x2="283" y2="470" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrowAmber)" opacity="0.5">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="2.1s" repeatCount="indefinite"/>
+  </line>
+  <text x="236" y="520" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b" opacity="0.6" transform="rotate(48 236 520)">Verbrauch</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VNB / NETZBETREIBER (right top) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="850" cy="240" r="80" fill="url(#vnbGlow)"/>
+
+  <rect x="756" y="168" width="188" height="158" rx="3" fill="#0d1520" stroke="#f59e0b" stroke-width="1.5" opacity="0.9"/>
+  <rect x="756" y="168" width="188" height="20" rx="3" fill="#f59e0b" opacity="0.07"/>
+
+  <text x="850" y="181" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#f59e0b" letter-spacing="2">NETZBETREIBER (VNB)</text>
+  <text x="850" y="192" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">Niederspannungsnetz · §14a EnWG</text>
+  <line x1="766" y1="198" x2="934" y2="198" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- Grid icon -->
+  <g transform="translate(795, 208)" opacity="0.7">
+    <line x1="0" y1="0" x2="60" y2="0" stroke="#f59e0b" stroke-width="1.2"/>
+    <line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1.2"/>
+    <line x1="10" y1="0" x2="10" y2="20" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="30" y1="0" x2="30" y2="20" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="50" y1="0" x2="50" y2="20" stroke="#f59e0b" stroke-width="1"/>
+    <circle cx="10" cy="0" r="2.5" fill="#f59e0b"/>
+    <circle cx="30" cy="0" r="2.5" fill="#f59e0b"/>
+    <circle cx="50" cy="0" r="2.5" fill="#f59e0b"/>
+    <circle cx="10" cy="20" r="2.5" fill="#f59e0b"/>
+    <circle cx="30" cy="20" r="2.5" fill="#f59e0b"/>
+    <circle cx="50" cy="20" r="2.5" fill="#f59e0b"/>
+    <!-- Transformer -->
+    <circle cx="30" cy="10" r="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,1.5"/>
+  </g>
+
+  <rect x="766" y="242" width="168" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="850" y="255" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">SMGW-Datenabruf via CLS</text>
+  <rect x="766" y="266" width="168" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="850" y="279" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">§14a Steuersignal → HEMS</text>
+  <rect x="766" y="290" width="168" height="26" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="850" y="302" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Bilanzkreis-Anmeldung der eG</text>
+  <text x="850" y="311" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Zählpunktbezug je DID</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- peaq NETWORK (right middle) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="850" cy="490" r="90" fill="url(#peaqGlow)"/>
+
+  <rect x="752" y="410" width="196" height="190" rx="3" fill="#0d1520" stroke="#a855f7" stroke-width="1.5" opacity="0.9"/>
+  <rect x="752" y="410" width="196" height="20" rx="3" fill="#a855f7" opacity="0.07"/>
+
+  <text x="850" y="423" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#a855f7" letter-spacing="2">peaq NETWORK</text>
+  <text x="850" y="434" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">DePIN · DID · Smart Contract</text>
+  <line x1="762" y1="440" x2="938" y2="440" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- Chain blocks visual -->
+  <g transform="translate(770, 450)">
+    <!-- Block 1 -->
+    <rect x="0" y="0" width="36" height="36" rx="2" fill="#1a0f2e" stroke="#a855f7" stroke-width="1" opacity="0.8"/>
+    <text x="18" y="13" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#a855f7">#4821</text>
+    <text x="18" y="23" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#6b8aaa">DID+kWh</text>
+    <text x="18" y="32" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#22c55e">✓</text>
+    <!-- Arrow -->
+    <line x1="38" y1="18" x2="48" y2="18" stroke="#a855f7" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.7"/>
+    <!-- Block 2 -->
+    <rect x="50" y="0" width="36" height="36" rx="2" fill="#1a0f2e" stroke="#a855f7" stroke-width="1" opacity="0.8"/>
+    <text x="68" y="13" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#a855f7">#4822</text>
+    <text x="68" y="23" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#6b8aaa">Token TX</text>
+    <text x="68" y="32" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#22c55e">✓</text>
+    <!-- Arrow -->
+    <line x1="88" y1="18" x2="98" y2="18" stroke="#a855f7" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.7"/>
+    <!-- Block 3 -->
+    <rect x="100" y="0" width="36" height="36" rx="2" fill="#1a0f2e" stroke="#a855f7" stroke-width="1" opacity="0.6"/>
+    <text x="118" y="13" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#a855f7">#4823</text>
+    <text x="118" y="23" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#6b8aaa">Settle</text>
+    <text x="118" y="32" text-anchor="middle" font-family="Space Mono, monospace" font-size="5" fill="#f59e0b">~</text>
+    <!-- Arrow -->
+    <line x1="138" y1="18" x2="148" y2="18" stroke="#a855f7" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
+    <!-- Block 4 pending -->
+    <rect x="150" y="4" width="28" height="28" rx="2" fill="#0d1520" stroke="#344a66" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="164" y="22" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#344a66">…</text>
+  </g>
+
+  <!-- Smart contract items -->
+  <rect x="762" y="500" width="176" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="850" y="513" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">Energy Token Contract (ERC-20-like)</text>
+
+  <rect x="762" y="524" width="84" height="34" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="804" y="537" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">DID Registry</text>
+  <text x="804" y="550" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#a855f7">SMGW-ID ↔ DID</text>
+
+  <rect x="850" y="524" width="88" height="34" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="894" y="537" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">Herkunftsnachweis</text>
+  <text x="894" y="550" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">kWh · Zeit · Quelle</text>
+
+  <rect x="762" y="562" width="176" height="28" rx="1" fill="#0a0514" stroke="#a855f7" stroke-width="1" opacity="0.6"/>
+  <text x="850" y="574" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#a855f7" letter-spacing="0.5">UNVERÄNDERLICH · TRANSPARENT</text>
+  <text x="850" y="584" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#a855f7" letter-spacing="0.5">OHNE INTERMEDIÄR</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- GENOSSENSCHAFT BKV (right bottom) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="636" y="640" width="428" height="60" rx="3" fill="#0d1520" stroke="#22c55e" stroke-width="1.2" opacity="0.9"/>
+  <rect x="636" y="640" width="428" height="18" rx="3" fill="#22c55e" opacity="0.06"/>
+  <text x="850" y="651" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#22c55e" letter-spacing="2">ENERGIEGENOSSENSCHAFT (eG) — BILANZKREISVERANTWORTLICHER</text>
+  <line x1="646" y1="658" x2="1054" y2="658" stroke="#1e3050" stroke-width="1"/>
+  <text x="680" y="672" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">§42c EnWG</text>
+  <text x="750" y="672" font-family="Space Mono, monospace" font-size="7" fill="#344a66">·</text>
+  <text x="762" y="672" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">Bilanzkreis-Anmeldung</text>
+  <text x="887" y="672" font-family="Space Mono, monospace" font-size="7" fill="#344a66">·</text>
+  <text x="899" y="672" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">EPEX Spot Settlement</text>
+  <text x="1010" y="672" font-family="Space Mono, monospace" font-size="7" fill="#344a66">·</text>
+  <text x="1022" y="672" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">Abrechnung je SMGW-ID</text>
+  <text x="680" y="688" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">Mitglieder:</text>
+  <!-- Member dots -->
+  <circle cx="744" cy="684" r="4" fill="#00d4ff" opacity="0.5"/>
+  <circle cx="756" cy="684" r="4" fill="#22c55e" opacity="0.5"/>
+  <circle cx="768" cy="684" r="4" fill="#f59e0b" opacity="0.5"/>
+  <text x="779" y="688" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Prosumer A / B / Mieter C / ···</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ARROWS: SMGW → VNB -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Bidirectional: Measurement data up, §14a signal down -->
+  <line x1="472" y1="350" x2="754" y2="230" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="7,4" marker-end="url(#arrowAmber)" opacity="0.55">
+    <animate attributeName="stroke-dashoffset" from="0" to="-22" dur="2s" repeatCount="indefinite"/>
+  </line>
+  <line x1="754" y1="250" x2="472" y2="365" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowAmber)" opacity="0.35">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="3s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- Label on arrow -->
+  <text x="590" y="276" font-family="Space Mono, monospace" font-size="7.5" fill="#f59e0b" opacity="0.8" transform="rotate(-18 590 276)">SMGW-Messwerte (CLS)</text>
+  <text x="565" y="312" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b" opacity="0.5" transform="rotate(-18 565 312)">§14a Steuersignal</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ARROWS: SMGW → peaq -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <line x1="472" y1="430" x2="750" y2="460" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="7,3" marker-end="url(#arrowPurple)" opacity="0.7">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.2s" repeatCount="indefinite"/>
+  </line>
+  <text x="580" y="438" font-family="Space Mono, monospace" font-size="8" fill="#a855f7" opacity="0.8" transform="rotate(5 580 438)">DID-signierter Token-Commit</text>
+  <text x="580" y="450" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa" opacity="0.6" transform="rotate(5 580 450)">SMGW-ID · kWh · Zeitstempel · Sig</text>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ARROWS: peaq → Genossenschaft -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <line x1="850" y1="600" x2="850" y2="638" stroke="#22c55e" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#arrowGreen)" opacity="0.6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.5s" repeatCount="indefinite"/>
+  </line>
+  <text x="858" y="625" font-family="Space Mono, monospace" font-size="7" fill="#22c55e" opacity="0.7">Settlement-Daten</text>
+
+  <!-- VNB → Genossenschaft -->
+  <line x1="850" y1="326" x2="850" y2="408" stroke="#344a66" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+  <line x1="780" y1="638" x2="780" y2="610" stroke="#344a66" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.3"/>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CERT / SIGNATURE FLOW CALLOUT -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="636" y="114" width="214" height="108" rx="2" fill="#0a0514" stroke="#a855f7" stroke-width="1" opacity="0.8"/>
+  <text x="648" y="130" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7" letter-spacing="1">SMGW-ZERTIFIKAT → DID</text>
+  <line x1="636" y1="136" x2="850" y2="136" stroke="#1e3050" stroke-width="1"/>
+  <text x="648" y="150" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">① SMGW erzeugt Messung</text>
+  <text x="648" y="165" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">② TLS-Zertifikat signiert Daten</text>
+  <text x="648" y="180" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">③ SMGW-ID → peaq DID Mapping</text>
+  <text x="648" y="195" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">④ Token-Commit on-chain</text>
+  <text x="648" y="210" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">⑤ Unveränderlicher Nachweis</text>
+
+  <!-- Arrow from callout to SMGW -->
+  <line x1="636" y1="168" x2="472" y2="380" stroke="#a855f7" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4" marker-end="url(#arrowPurple)"/>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- LEGEND bottom left -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="32" y="640" width="570" height="60" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="48" y="656" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="2">LEGENDE</text>
+  <line x1="48" y1="661" x2="586" y2="661" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- Legend items -->
+  <line x1="48" y1="675" x2="78" y2="675" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="84" y="678" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Messwert-Fluss (HEMS)</text>
+
+  <line x1="48" y1="690" x2="78" y2="690" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="84" y="693" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Blockchain-Commit (peaq DID-signiert)</text>
+
+  <line x1="210" y1="675" x2="240" y2="675" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="246" y="678" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Netzbetreiber (VNB / CLS / §14a)</text>
+
+  <line x1="210" y1="690" x2="240" y2="690" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="246" y="693" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Settlement / Abrechnung (eG BKV)</text>
+
+  <line x1="390" y1="675" x2="420" y2="675" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="426" y="678" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Registrierung / Verwaltung</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Watermark -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <text x="1168" y="808" text-anchor="end" font-family="Space Mono, monospace" font-size="8" fill="#1e3050" letter-spacing="1">THE ELECTRON CHAIN — Open Source MIT · github.com/tec-hems</text>
+
+</svg>
+</div>
+</body>
+</html>

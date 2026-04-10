@@ -1,0 +1,152 @@
+name: "TheElectronChain"
+version: "4.0.0"
+slug: "the_electron_chain"
+description: "Cologne MaLo Aggregation Platform — Local Flexibility Market via Peaq Blockchain"
+url: "https://github.com/peaqnetwork"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+init: false
+startup: application
+boot: auto
+options:
+  # Peaq Network Settings
+  network_url: "wss://wss-async.agung.peaq.network"
+  network_type: "agung"
+  machine_name: "TheElectronChain"
+
+  # Energy Trading Settings
+  enable_trading: true
+  min_sell_price: 0.25
+  max_buy_price: 0.22
+  min_buy_price: 0.02
+  battery_reserve: 20
+  max_feedin_power: 800
+
+  # MaLo Fleet Settings (Cologne)
+  malo_count: 200
+
+  # AgNes BNetzA — Dynamic Grid Fees (15-min granularity)
+  agnes_enabled: true
+
+  # Community Flexibility Market (Redispatch 3.0)
+  community_flex_enabled: true
+  clearing_mode: "uniform_price"
+  min_flex_bid_kw: 0.1
+  settlement_penalty_pct: 10
+
+  # ===== Party 1: Gertrud Koch Str (Anker Solix) =====
+  party1_name: "Gertrud Koch Str"
+  party1_lat: 50.9333
+  party1_lon: 6.9500
+  party1_malo_id: "50662350764"
+  party1_melo_id: "DE000462203000000000000000000001"
+  # Anker Solix 1600 AC (HACS: ha-anker-solix)
+  anker_battery_sensor: "sensor.solarbank_2_e1600_battery_charge"
+  anker_power_sensor: "sensor.solarbank_2_e1600_output_power"
+  anker_output_control: "number.solarbank_2_e1600_output_preset"
+  anker_ac_charging: "switch.solarbank_2_e1600_ac_notladeoption"
+  anker_device_id: "b8214a38bd446ccbf2837f3c71ff5309"
+
+  # ===== Party 2: Eilendorfer Str (Zendure Hyper 2000) =====
+  party2_name: "Eilendorfer Str"
+  party2_lat: 50.7717
+  party2_lon: 6.1244
+  party2_malo_id: "50662350765"
+  party2_melo_id: "DE000462203000000000000000000002"
+  # Zendure Hyper 2000 (HACS: Zendure-HA)
+  zendure_battery_sensor: "sensor.hyper_2000_electric_level"
+  zendure_power_sensor: "sensor.hyper_2000_output_power"
+  zendure_output_control: "number.hyper_2000_output_limit"
+  zendure_input_control: "number.hyper_2000_input_limit"
+  zendure_ac_mode: "select.hyper_2000_ac_mode"
+
+  # PV Simulation (pvlib-style: Spencer equations + isotropic sky model)
+  party1_pv_tilt: 30
+  party1_pv_azimuth: 180
+  party1_pv_peak_wp: 1600
+  party2_pv_tilt: 30
+  party2_pv_azimuth: 180
+  party2_pv_peak_wp: 2000
+
+  # EPEX Price Sensor (ha_epex_spot Integration)
+  epex_sensor: "sensor.epex_spot_data_total_price"
+
+  # P2P Trading Settings
+  p2p_trade_amount_wh: 100
+
+  # System Settings
+  update_interval: 300
+  log_level: "info"
+
+schema:
+  network_url: str
+  network_type: list(agung|krest|peaq)?
+  machine_name: str
+  machine_mnemonic: password?
+  enable_trading: bool
+  min_sell_price: float(0.01,1.0)
+  max_buy_price: float(0.01,1.0)
+  min_buy_price: float(0.01,1.0)?
+  battery_reserve: int(10,50)
+  max_feedin_power: int(100,2400)
+
+  # MaLo Fleet
+  malo_count: int(10,1000)?
+
+  # AgNes + Community Flex
+  agnes_enabled: bool?
+  community_flex_enabled: bool?
+  clearing_mode: list(uniform_price|pay_as_bid)?
+  min_flex_bid_kw: float(0.01,10.0)?
+  settlement_penalty_pct: int(0,50)?
+
+  # Party 1
+  party1_name: str?
+  party1_lat: float?
+  party1_lon: float?
+  party1_malo_id: str?
+  party1_melo_id: str?
+  anker_battery_sensor: str?
+  anker_power_sensor: str?
+  anker_output_control: str?
+  anker_ac_charging: str?
+  anker_device_id: str?
+
+  # Party 2
+  party2_name: str?
+  party2_lat: float?
+  party2_lon: float?
+  party2_malo_id: str?
+  party2_melo_id: str?
+  zendure_battery_sensor: str?
+  zendure_power_sensor: str?
+  zendure_output_control: str?
+  zendure_input_control: str?
+  zendure_ac_mode: str?
+
+  epex_sensor: str?
+  p2p_trade_amount_wh: int(10,1000)?
+  update_interval: int(60,3600)
+  log_level: list(debug|info|warning|error)?
+
+  # PV simulation (pvlib-style)
+  party1_pv_tilt: float(0,90)?
+  party1_pv_azimuth: float(0,360)?
+  party1_pv_peak_wp: int(100,20000)?
+  party2_pv_tilt: float(0,90)?
+  party2_pv_azimuth: float(0,360)?
+  party2_pv_peak_wp: int(100,20000)?
+
+services:
+  - mqtt:want
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: TheElectronChain Dashboard
+homeassistant_api: true
+hassio_api: true
+hassio_role: default

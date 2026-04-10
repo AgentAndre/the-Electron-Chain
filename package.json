@@ -1,0 +1,52 @@
+{
+  "name": "the-electron-chain",
+  "version": "4.0.0",
+  "description": "TheElectronChain — Cologne MaLo Aggregation Platform, Local Flexibility Market via Peaq Blockchain",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": [
+    "peaq",
+    "blockchain",
+    "depin",
+    "home-assistant",
+    "iot",
+    "energy-trading",
+    "malo",
+    "melo",
+    "flexibility-market",
+    "redispatch",
+    "efdm",
+    "agnes",
+    "cologne",
+    "epex"
+  ],
+  "author": "Peaq Network",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@peaq-network/sdk": "^0.2.0",
+    "@polkadot/api": "^10.11.0",
+    "@polkadot/util": "^12.6.0",
+    "@polkadot/util-crypto": "^12.6.0",
+    "ethers": "^6.9.2",
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64",
+    "arm"
+  ]
+}

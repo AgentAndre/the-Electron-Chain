@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Peaq Energy Trading Hub — Figma Design Spec v3.2</title>
+  <style>
+    /* ─── Design Tokens ──────────────────────────────────────────── */
+    :root {
+      --bg0: #09090b;
+      --bg1: #0f0f12;
+      --bg2: #18181b;
+      --bg3: #27272a;
+      --bg4: #3f3f46;
+      --t0: #fafafa;
+      --t1: #a1a1aa;
+      --t2: #71717a;
+      --t3: #52525b;
+      --bdr: #27272a;
+      --grn: #16a34a;
+      --grn-light: #22c55e;
+      --red: #dc2626;
+      --red-light: #ef4444;
+      --yel: #ca8a04;
+      --yel-light: #eab308;
+      --blu: #2563eb;
+      --blu-light: #3b82f6;
+      --ora: #f59e0b;
+      --ora-light: #fbbf24;
+      --pur: #7c3aed;
+      --pur-light: #8b5cf6;
+
+      /* Spacing scale */
+      --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+      --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+
+      /* Radius */
+      --r1: 4px; --r2: 6px; --r3: 8px; --r4: 12px; --r5: 16px;
+
+      /* Font sizes */
+      --f-xs: 10px; --f-sm: 11px; --f-base: 12px; --f-md: 13px;
+      --f-lg: 14px; --f-xl: 16px; --f-2xl: 20px; --f-3xl: 28px; --f-4xl: 36px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #111;
+      color: var(--t0);
+      line-height: 1.5;
+    }
+
+    /* ─── Layout ──────────────────────────────────────────────────── */
+    .page { max-width: 1400px; margin: 0 auto; padding: 40px 32px; }
+    .section { margin-bottom: 64px; }
+    .section-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .15em; color: var(--t2);
+      border-bottom: 1px solid var(--bdr); padding-bottom: 10px;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Color Palette ───────────────────────────────────────────── */
+    .palette { display: flex; flex-wrap: wrap; gap: 12px; }
+    .swatch {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .swatch-chip {
+      width: 72px; height: 48px; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .swatch-label { font-size: 9px; color: var(--t2); text-align: center; font-family: monospace; }
+    .swatch-hex { font-size: 9px; color: var(--t1); font-family: monospace; }
+
+    /* ─── Typography ──────────────────────────────────────────────── */
+    .type-scale { display: flex; flex-direction: column; gap: 10px; }
+    .type-row { display: flex; align-items: baseline; gap: 16px; }
+    .type-label { font-size: 9px; color: var(--t2); min-width: 80px; font-family: monospace; }
+
+    /* ─── Component Cards ─────────────────────────────────────────── */
+    .comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .comp-card {
+      background: var(--bg1); border: 1px solid var(--bdr);
+      border-radius: 8px; padding: 16px;
+    }
+    .comp-label { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--pur); margin-bottom: 12px; }
+
+    /* ─── Shared UI primitives ────────────────────────────────────── */
+    .card {
+      background: var(--bg1); border: 1px solid var(--bdr);
+      border-radius: var(--r3); padding: 14px;
+    }
+    .ctitle {
+      font-size: var(--f-xs); font-weight: 500; color: var(--t2);
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+    }
+    .big-num { font-size: var(--f-4xl); font-weight: 600; line-height: 1; }
+    .unit { font-size: var(--f-sm); color: var(--t2); }
+
+    /* Badges */
+    .badge {
+      display: inline-block; padding: 4px 14px; border-radius: 4px;
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    }
+    .badge-sell { background: #dc262618; color: #dc2626; border: 1px solid #dc262640; }
+    .badge-buy  { background: #16a34a18; color: #16a34a; border: 1px solid #16a34a40; }
+    .badge-hold { background: #ca8a0418; color: #ca8a04; border: 1px solid #ca8a0440; }
+    .badge-live { background: #22c55e18; color: #22c55e; border: 1px solid #22c55e40; font-size:9px;letter-spacing:.06em; }
+    .badge-demo { background: #eab30818; color: #eab308; border: 1px solid #eab30840; font-size:9px;letter-spacing:.06em; }
+
+    /* Battery bars */
+    .bat-bar { height: 4px; background: var(--bg0); border-radius: 2px; overflow: hidden; margin: 5px 0; }
+    .bat-fill { height: 100%; border-radius: 2px; }
+    .bat-fill.high  { background: var(--grn); }
+    .bat-fill.mid   { background: var(--yel); }
+    .bat-fill.low   { background: var(--red); }
+
+    /* Buttons */
+    .btn {
+      padding: 7px 14px; border: 1px solid var(--bdr); border-radius: 5px;
+      background: var(--bg2); color: var(--t0); font-size: 11px; cursor: pointer;
+    }
+    .btn-primary { background: var(--blu); border-color: var(--blu); font-weight: 600; }
+    .btn-danger  { background: transparent; border-color: var(--red); color: var(--red); }
+
+    /* Map stub */
+    .map-stub {
+      height: 300px; background: var(--bg2); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--t2); border: 1px solid var(--bdr);
+      position: relative; overflow: hidden;
+    }
+    .map-stub::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      opacity: .4;
+    }
+    .map-stub-label { position: relative; z-index: 1; }
+
+    /* Node dots */
+    .node-dot {
+      width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+      vertical-align: middle; margin-right: 4px;
+    }
+
+    /* Chart bars */
+    .chart-wrap {
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 120px; padding: 0 2px; background: var(--bg2);
+      border-radius: 4px; padding: 4px;
+    }
+    .chart-col { flex: 1; display: flex; align-items: flex-end; position: relative; }
+    .chart-pv  { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 2px 2px 0 0; background: rgba(245,158,11,.15); border-top: 1px solid rgba(245,158,11,.4); }
+    .chart-bar { flex: 1; border-radius: 2px 2px 0 0; position: relative; z-index: 1; }
+
+    /* Order table */
+    .ob-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .ob-table th { font-size: 9px; color: var(--t2); text-align: left; padding-bottom: 4px; border-bottom: 1px solid var(--bdr); }
+    .ob-table td { padding: 4px 2px; border-bottom: 1px solid rgba(39,39,42,.5); }
+    .col-buy  { color: var(--grn); font-weight: 600; }
+    .col-sell { color: var(--red); font-weight: 600; }
+    .col-dim  { color: var(--t2); font-size: 10px; }
+
+    /* Form fields */
+    .field {
+      background: var(--bg2); border: 1px solid var(--bdr); border-radius: 4px;
+      padding: 6px 8px; color: var(--t0); font-size: 11px; width: 100%;
+    }
+    .field-label { font-size: 9px; color: var(--t2); margin-bottom: 3px; }
+
+    /* Info row */
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 8px; background: var(--bg2); border-radius: 4px;
+      font-size: 11px; margin-bottom: 4px;
+    }
+    .info-val { font-weight: 600; }
+
+    /* Live dot */
+    .dot-live {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--grn);
+      display: inline-block; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.35} }
+
+    /* ─── Dashboard Layout Wireframe ──────────────────────────────── */
+    .dash-layout {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    .span-3  { grid-column: span 3; }
+    .span-4  { grid-column: span 4; }
+    .span-5  { grid-column: span 5; }
+    .span-6  { grid-column: span 6; }
+    .span-7  { grid-column: span 7; }
+    .span-8  { grid-column: span 8; }
+    .span-9  { grid-column: span 9; }
+    .span-12 { grid-column: span 12; }
+
+    /* Header */
+    .dash-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 20px; background: var(--bg1); border-bottom: 1px solid var(--bdr);
+      border-radius: 8px 8px 0 0; margin-bottom: 4px;
+    }
+    .dash-title { font-size: 13px; font-weight: 500; letter-spacing: -.01em; }
+    .dash-meta  { display: flex; gap: 12px; align-items: center; font-size: 10px; color: var(--t1); }
+
+    /* Section separator */
+    .spec-note {
+      font-size: 9px; color: var(--pur-light); background: rgba(124,58,237,.1);
+      border: 1px solid rgba(124,58,237,.25); border-radius: 4px;
+      padding: 3px 8px; margin-bottom: 6px; display: inline-block;
+    }
+
+    /* Annotations */
+    .annot {
+      font-size: 9px; color: var(--t2); margin-top: 8px; line-height: 1.6;
+    }
+    .annot b { color: var(--t1); }
+    .annot code { font-family: monospace; color: var(--ora); background: rgba(245,158,11,.1); padding: 0 3px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HEADER ────────────────────────────────────────────────────── -->
+  <div style="margin-bottom:48px">
+    <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px">
+      Peaq Energy Trading Hub
+    </div>
+    <div style="font-size:12px;color:var(--t2)">
+      Figma Design Specification · v3.2 · DePIN P2P Energy Trading Dashboard
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <span class="badge-live badge">DARK THEME</span>
+      <span style="background:var(--bg2);border:1px solid var(--bdr);padding:3px 10px;border-radius:4px;font-size:10px;color:var(--t2)">Port 8099</span>
+      <span style="background:var(--bg2);border:1px solid var(--bdr);padding:3px 10px;border-radius:4px;font-size:10px;color:var(--t2)">12-column grid · 1440px max</span>
+    </div>
+  </div>
+
+  <!-- ── 1. COLOR PALETTE ──────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">1 · Color Palette</div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:10px;color:var(--t2);margin-bottom:12px">Background Scale</div>
+      <div class="palette">
+        <div class="swatch"><div class="swatch-chip" style="background:#09090b"></div><div class="swatch-label">bg0 · Base</div><div class="swatch-hex">#09090b</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#0f0f12"></div><div class="swatch-label">bg1 · Card</div><div class="swatch-hex">#0f0f12</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#18181b"></div><div class="swatch-label">bg2 · Inner</div><div class="swatch-hex">#18181b</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#27272a"></div><div class="swatch-label">bg3 · Hover</div><div class="swatch-hex">#27272a</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#3f3f46"></div><div class="swatch-label">bg4 · Border+</div><div class="swatch-hex">#3f3f46</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:10px;color:var(--t2);margin-bottom:12px">Text Scale</div>
+      <div class="palette">
+        <div class="swatch"><div class="swatch-chip" style="background:#fafafa"></div><div class="swatch-label">t0 · Primary</div><div class="swatch-hex">#fafafa</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#a1a1aa"></div><div class="swatch-label">t1 · Secondary</div><div class="swatch-hex">#a1a1aa</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#71717a"></div><div class="swatch-label">t2 · Muted</div><div class="swatch-hex">#71717a</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#52525b"></div><div class="swatch-label">t3 · Disabled</div><div class="swatch-hex">#52525b</div></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--t2);margin-bottom:12px">Semantic Colors</div>
+      <div class="palette">
+        <div class="swatch"><div class="swatch-chip" style="background:#16a34a"></div><div class="swatch-label">Green · Buy / Solar</div><div class="swatch-hex">#16a34a</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#dc2626"></div><div class="swatch-label">Red · Sell / Alert</div><div class="swatch-hex">#dc2626</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#ca8a04"></div><div class="swatch-label">Yellow · Hold / Warn</div><div class="swatch-hex">#ca8a04</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#2563eb"></div><div class="swatch-label">Blue · Neutral / Link</div><div class="swatch-hex">#2563eb</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#f59e0b"></div><div class="swatch-label">Amber · HA / PV</div><div class="swatch-hex">#f59e0b</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#7c3aed"></div><div class="swatch-label">Purple · Blockchain</div><div class="swatch-hex">#7c3aed</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. TYPOGRAPHY ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">2 · Typography — System Font Stack (Inter / -apple-system)</div>
+    <div class="type-scale">
+      <div class="type-row"><span class="type-label">f-4xl · 36px · 600</span><span style="font-size:36px;font-weight:600;color:var(--grn)">20.4</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Big KPI number (ct/kWh)</span></div>
+      <div class="type-row"><span class="type-label">f-3xl · 28px · 600</span><span style="font-size:28px;font-weight:600">2.37</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Earnings EUR</span></div>
+      <div class="type-row"><span class="type-label">f-xl · 16px · 500</span><span style="font-size:16px;font-weight:500">Gertrud Koch Str</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Section heading</span></div>
+      <div class="type-row"><span class="type-label">f-lg · 14px · 400</span><span style="font-size:14px">Anker Solix 1600 AC</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Body text</span></div>
+      <div class="type-row"><span class="type-label">f-base · 12px · 400</span><span style="font-size:12px">SELL @ 24.5 ct/kWh · 100 Wh · Priorität 7</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Table cells</span></div>
+      <div class="type-row"><span class="type-label">f-sm · 11px · 400</span><span style="font-size:11px;color:var(--t1)">did:peaq:smg_a3f2b1c4d…</span><span style="font-size:11px;color:var(--t2);margin-left:8px">DID / fingerprint</span></div>
+      <div class="type-row"><span class="type-label">f-xs · 10px · 500 UC</span><span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2)">Trading Mode</span><span style="font-size:11px;color:var(--t2);margin-left:8px">Card title</span></div>
+    </div>
+  </div>
+
+  <!-- ── 3. COMPONENT LIBRARY ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">3 · Component Library</div>
+    <div class="comp-grid">
+
+      <!-- Badges -->
+      <div class="comp-card">
+        <div class="comp-label">Mode Badge</div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+          <span class="badge badge-sell">SELL</span>
+          <span class="badge badge-buy">BUY</span>
+          <span class="badge badge-hold">HOLD</span>
+          <span class="badge" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">DISABLED</span>
+        </div>
+        <div class="annot">padding: 4px 18px · radius: 4px · font: 11px 700 · letter-spacing: .1em</div>
+      </div>
+
+      <!-- Battery Card -->
+      <div class="comp-card">
+        <div class="comp-label">Battery Card</div>
+        <div style="background:var(--bg2);border-radius:6px;padding:12px">
+          <div style="font-size:9px;color:var(--t2);margin-bottom:3px">Gertrud Koch Str · Anker Solix 1600</div>
+          <div style="font-size:24px;font-weight:600;color:var(--grn)">78<span style="font-size:14px;font-weight:400">%</span></div>
+          <div class="bat-bar"><div class="bat-fill high" style="width:78%"></div></div>
+          <div style="font-size:10px;color:var(--t1)">+320 W · charging</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:6px">1600 Wh capacity</div>
+        </div>
+        <div class="annot"><b>SoC colors:</b> &gt;50% <code>--grn</code>, 20-50% <code>--yel</code>, &lt;20% <code>--red</code><br>Bar transitions smoothly via CSS</div>
+      </div>
+
+      <!-- KPI Card -->
+      <div class="comp-card">
+        <div class="comp-label">KPI / Metric Card</div>
+        <div style="text-align:center;padding:8px">
+          <div class="ctitle">EPEX Spot</div>
+          <div><span class="big-num" style="font-size:36px;color:#dc2626">24.5</span><span class="unit"> ct/kWh</span></div>
+          <div style="margin-top:6px;font-size:10px;color:var(--t1)">Sell ≥ 25 ct &nbsp;·&nbsp; Buy ≤ 22 ct</div>
+          <div style="margin-top:4px;font-size:10px;color:var(--t2)">☀️ 12.4 kW Netzleistung</div>
+        </div>
+        <div class="annot">Price color: red=sell zone · green=buy zone · yellow=hold<br>Big number: 36px 600 · unit: 11px muted</div>
+      </div>
+
+      <!-- Node List Row -->
+      <div class="comp-card">
+        <div class="comp-label">Node List Item</div>
+        <div style="font-size:10px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="color:var(--t2)"><th style="text-align:left;padding-bottom:4px;border-bottom:1px solid var(--bdr)">Node</th><th>SoC</th><th>PV</th><th>Mode</th><th>ZP</th></tr></thead>
+            <tbody>
+              <tr style="color:var(--ora)">
+                <td style="padding:4px 2px">⭐ Gertrud Koch</td>
+                <td style="color:var(--grn);font-weight:600;text-align:center">78%</td>
+                <td style="color:var(--ora);text-align:center">820W</td>
+                <td style="color:var(--grn);font-weight:600;text-align:center">SELL</td>
+                <td style="color:var(--t2);font-size:9px">DE00043A…</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 2px;color:var(--t1)">Köln 3</td>
+                <td style="color:var(--yel);font-weight:600;text-align:center">34%</td>
+                <td style="color:var(--t2);text-align:center">—</td>
+                <td style="color:var(--t2);text-align:center">—</td>
+                <td style="color:var(--t2);font-size:9px">DE00012F…</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 2px;color:var(--t1)">Aachen 7</td>
+                <td style="color:var(--red);font-weight:600;text-align:center">12%</td>
+                <td style="color:var(--t2);text-align:center">—</td>
+                <td style="color:var(--blu);font-weight:600;text-align:center">BUY</td>
+                <td style="color:var(--t2);font-size:9px">DE0009A1…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="annot">HA nodes: amber row highlight · Scrollable to 300px max-height</div>
+      </div>
+
+      <!-- Forecast Bar (micro) -->
+      <div class="comp-card">
+        <div class="comp-label">48h Chart Bar Cell</div>
+        <div style="display:flex;gap:4px;align-items:flex-end;height:80px;margin-bottom:6px">
+          <!-- example bars with PV overlay -->
+          <div style="flex:1;position:relative;display:flex;align-items:flex-end">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:40px;background:#3b82f6;border-radius:2px 2px 0 0;position:relative;z-index:1"></div>
+          </div>
+          <div style="flex:1;position:relative;display:flex;align-items:flex-end">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:55px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:65px;background:#16a34a;border-radius:2px 2px 0 0;position:relative;z-index:1"></div>
+          </div>
+          <div style="flex:1;position:relative;display:flex;align-items:flex-end">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:70px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:45px;background:#dc2626;border-radius:2px 2px 0 0;position:relative;z-index:1"></div>
+          </div>
+          <div style="flex:1;position:relative;display:flex;align-items:flex-end">
+            <div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:20px;background:#3b82f6;border-radius:2px 2px 0 0;position:relative;z-index:1"></div>
+          </div>
+          <div style="flex:1;position:relative;display:flex;align-items:flex-end">
+            <div style="flex:1;height:70px;background:#dc2626;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:9px;color:var(--t1)">
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#dc2626;border-radius:2px"></span>Sell</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#16a34a;border-radius:2px"></span>Buy</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#3b82f6;border-radius:2px"></span>Hold</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:rgba(245,158,11,.3);border:1px solid rgba(245,158,11,.5)"></span>PV</span>
+        </div>
+        <div class="annot">PV layer is semi-transparent amber behind price bar<br>Price: <code>z-index:1</code> · PV: <code>position:absolute, bottom:0</code></div>
+      </div>
+
+      <!-- Order Book Row -->
+      <div class="comp-card">
+        <div class="comp-label">Order Book</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <table class="ob-table">
+              <thead><tr><th>Buy ct</th><th>Wh</th><th>P</th><th>Src</th></tr></thead>
+              <tbody>
+                <tr><td class="col-buy">23.1</td><td>200</td><td class="col-dim">8</td><td class="col-dim">📈</td></tr>
+                <tr><td class="col-buy">22.5</td><td>100</td><td class="col-dim">5</td><td class="col-dim">👤</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <table class="ob-table">
+              <thead><tr><th>Sell ct</th><th>Wh</th><th>P</th><th>Src</th></tr></thead>
+              <tbody>
+                <tr><td class="col-sell">22.8</td><td>150</td><td class="col-dim">7</td><td class="col-dim">☀️</td></tr>
+                <tr><td class="col-sell">24.0</td><td>300</td><td class="col-dim">5</td><td class="col-dim">📈</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:10px;color:var(--yel);margin-top:8px;padding:5px;background:var(--bg2);border-radius:4px">
+          Spread: 0.3 ct &nbsp;·&nbsp; <span style="color:var(--grn)">23.1</span> ↔ <span style="color:var(--red)">22.8</span>
+        </div>
+        <div class="annot">Spread bar: yellow · Buy: green · Sell: red<br>Sources: ☀️ auto_solar · 📈 auto_forecast · 👤 manual</div>
+      </div>
+
+      <!-- Map Legend -->
+      <div class="comp-card">
+        <div class="comp-label">Map Node Legend</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:18px;height:18px;border-radius:50%;background:#f59e0b;border:2px solid #fff;flex-shrink:0"></div>
+            <div><div style="color:var(--ora);font-weight:600">HA Node (real)</div><div style="color:var(--t2)">radius 9 · white border · z-index top</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#16a34a;flex-shrink:0;margin-left:4px"></div>
+            <div><div style="color:var(--grn)">Can Sell / Solar Surplus</div><div style="color:var(--t2)">radius 5 · surplusW &gt; 50 || SoC &gt; 40%</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#dc2626;flex-shrink:0;margin-left:4px"></div>
+            <div><div style="color:var(--red)">Needs to Buy</div><div style="color:var(--t2)">SoC &lt; 30% &amp;&amp; solar &lt; 100W</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0;margin-left:4px"></div>
+            <div><div style="color:var(--blu)">Neutral / Hold</div><div style="color:var(--t2)">all other states</div></div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:9px;color:var(--t2)">
+          Active trade: animated dashed yellow polyline between HA nodes
+        </div>
+      </div>
+
+      <!-- SMG / Chain Info -->
+      <div class="comp-card">
+        <div class="comp-label">Blockchain Identity</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">
+          <div style="background:var(--bg2);padding:8px;border-radius:4px">
+            <div style="color:var(--t2);margin-bottom:2px">Network</div>
+            <div style="font-weight:600">AGUNG</div>
+          </div>
+          <div style="background:var(--bg2);padding:8px;border-radius:4px">
+            <div style="color:var(--t2);margin-bottom:2px">Status</div>
+            <div style="color:var(--grn);font-weight:600">On-Chain Live</div>
+          </div>
+          <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 2">
+            <div style="color:var(--t2);margin-bottom:2px">Hub DID</div>
+            <div style="font-family:monospace;font-size:9px;color:var(--pur-light)">did:peaq:0x3a4f2b1c8d9e7f…</div>
+          </div>
+          <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 2">
+            <div style="color:var(--t2);margin-bottom:2px">SMG-Zählpunkt (BSI TR-03109)</div>
+            <div style="font-family:monospace;font-size:9px;color:var(--ora)">DE0004972000000000000000000000001</div>
+          </div>
+        </div>
+        <div class="annot">DID: purple · ZP: amber · Wallet address: monospace t0</div>
+      </div>
+
+    </div><!-- /comp-grid -->
+  </div>
+
+  <!-- ── 4. FULL DASHBOARD LAYOUT ───────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">4 · Dashboard Layout — Full Composite (1440px, 12-col grid, 14px gap)</div>
+
+    <div style="background:var(--bg0);border-radius:10px;padding:16px 20px;border:1px solid var(--bg3)">
+
+      <!-- Header -->
+      <div class="dash-header" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="dash-title">⚡ Peaq Energy Trading Hub</div>
+          <span class="badge-live badge">v3.2</span>
+        </div>
+        <div class="dash-meta">
+          <span id="ws-mock" style="color:var(--grn)">● Live</span>
+          <span>AGUNG · DEMO</span>
+          <span style="color:var(--t2)">32 Nodes</span>
+          <div style="display:flex;gap:6px">
+            <a href="#" style="color:var(--blu);font-size:10px;text-decoration:none">API</a>
+            <a href="#" style="color:var(--blu);font-size:10px;text-decoration:none">Orders</a>
+            <a href="#" style="color:var(--blu);font-size:10px;text-decoration:none">Nodes</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 1: KPIs (12 cols) -->
+      <div class="dash-layout" style="margin-bottom:12px">
+
+        <!-- Mode -->
+        <div class="card span-3" style="text-align:center">
+          <div class="ctitle">Trading Mode</div>
+          <div class="badge badge-sell" style="margin:4px auto;display:block;width:fit-content">SELL</div>
+          <div style="font-size:30px;font-weight:600;color:var(--yel);margin-top:8px">1.24</div>
+          <div class="unit">EUR Erlöse</div>
+          <div style="font-size:10px;color:var(--t1);margin-top:6px">3 P2P-Trades</div>
+        </div>
+
+        <!-- Price -->
+        <div class="card span-3" style="text-align:center">
+          <div class="ctitle">EPEX Spot</div>
+          <div><span style="font-size:30px;font-weight:600;color:var(--red)">26.1</span><span class="unit"> ct/kWh</span></div>
+          <div style="font-size:10px;color:var(--t1);margin-top:6px">Sell ≥ 25 ct · Buy ≤ 22 ct</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:3px">☀️ 14.2 kW Netzleistung</div>
+        </div>
+
+        <!-- Batteries (2 in one card, 6-col) -->
+        <div class="card span-6">
+          <div class="ctitle">HA-Nodes — Batteriespeicher</div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <div style="flex:1;background:var(--bg2);border-radius:6px;padding:10px">
+              <div style="font-size:9px;color:var(--t2);margin-bottom:3px">Gertrud Koch · Anker 1600</div>
+              <div style="font-size:20px;font-weight:600;color:var(--grn)">78%</div>
+              <div class="bat-bar"><div class="bat-fill high" style="width:78%"></div></div>
+              <div style="font-size:10px;color:var(--t1)">+320 W</div>
+            </div>
+            <div style="flex:1;background:var(--bg2);border-radius:6px;padding:10px">
+              <div style="font-size:9px;color:var(--t2);margin-bottom:3px">Eilendorfer · Zendure 2000</div>
+              <div style="font-size:20px;font-weight:600;color:var(--yel)">43%</div>
+              <div class="bat-bar"><div class="bat-fill mid" style="width:43%"></div></div>
+              <div style="font-size:10px;color:var(--t1)">−180 W</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Row 2: Map (8) + Nodes (4) -->
+      <div class="dash-layout" style="margin-bottom:12px">
+        <div class="card span-8">
+          <div class="ctitle">DePIN Node Network — NRW</div>
+          <div class="map-stub">
+            <div class="map-stub-label">
+              🗺️ Leaflet Map<br>
+              <span style="font-size:10px;color:var(--t2)">CartoDB Dark tiles · canvas renderer · 32 nodes</span>
+            </div>
+            <!-- Simulated node dots -->
+            <div style="position:absolute;top:40%;left:35%;width:16px;height:16px;border-radius:50%;background:#f59e0b;border:2px solid #fff;z-index:2"></div>
+            <div style="position:absolute;top:60%;left:25%;width:16px;height:16px;border-radius:50%;background:#f59e0b;border:2px solid #fff;z-index:2"></div>
+            <div style="position:absolute;top:40%;left:35%;width:200px;height:1px;background:#ca8a04;transform:rotate(30deg);z-index:1;opacity:.7;border-top:2px dashed #ca8a04"></div>
+            <div style="position:absolute;top:30%;left:50%;width:8px;height:8px;border-radius:50%;background:#16a34a;z-index:2"></div>
+            <div style="position:absolute;top:50%;left:60%;width:8px;height:8px;border-radius:50%;background:#dc2626;z-index:2"></div>
+            <div style="position:absolute;top:70%;left:45%;width:8px;height:8px;border-radius:50%;background:#3b82f6;z-index:2"></div>
+            <div style="position:absolute;top:35%;left:70%;width:8px;height:8px;border-radius:50%;background:#16a34a;z-index:2"></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:9px;color:var(--t1)">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid #fff;margin-right:3px;vertical-align:middle"></span>HA Node</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#16a34a;margin-right:3px;vertical-align:middle"></span>Can Sell</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin-right:3px;vertical-align:middle"></span>Needs Buy</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:3px;vertical-align:middle"></span>Hold</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn" style="flex:1;font-size:10px">100Wh: Gertrud Koch → Eilendorfer</button>
+            <button class="btn" style="flex:1;font-size:10px">100Wh: Eilendorfer → Gertrud Koch</button>
+          </div>
+        </div>
+
+        <div class="card span-4">
+          <div class="ctitle">Netz-Nodes <span style="color:var(--t2)">(32)</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
+            <div class="info-row"><span>Online</span><span class="info-val" style="color:var(--grn)">30</span></div>
+            <div class="info-row"><span>Mit Solar</span><span class="info-val" style="color:var(--ora)">24 ☀️</span></div>
+            <div class="info-row"><span>Können Verkaufen</span><span class="info-val" style="color:var(--red)">14</span></div>
+            <div class="info-row"><span>Müssen Kaufen</span><span class="info-val" style="color:var(--blu)">3</span></div>
+            <div class="info-row"><span>Überschuss Total</span><span class="info-val" style="color:var(--grn)">8.4 kW</span></div>
+          </div>
+          <div style="font-size:10px;max-height:180px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr style="color:var(--t2);font-size:9px"><th style="text-align:left;padding-bottom:3px;border-bottom:1px solid var(--bdr)">Node</th><th>SoC</th><th>PV</th><th>Mode</th></tr></thead>
+              <tbody>
+                <tr style="color:var(--ora)"><td style="padding:3px 2px">⭐ Gertrud Koch</td><td style="text-align:center;color:var(--grn);font-weight:600">78%</td><td style="text-align:center">820W</td><td style="text-align:center;color:var(--grn);font-weight:600">SELL</td></tr>
+                <tr style="color:var(--ora)"><td style="padding:3px 2px">⭐ Eilendorfer</td><td style="text-align:center;color:var(--yel);font-weight:600">43%</td><td style="text-align:center">1.1kW</td><td style="text-align:center;color:var(--yel)">HOLD</td></tr>
+                <tr><td style="padding:3px 2px;color:var(--t1)">Köln 1</td><td style="text-align:center;color:var(--grn);font-weight:600">65%</td><td style="text-align:center">480W</td><td style="text-align:center;color:var(--grn)">SELL</td></tr>
+                <tr><td style="padding:3px 2px;color:var(--t1)">Aachen 3</td><td style="text-align:center;color:var(--red);font-weight:600">14%</td><td style="text-align:center;color:var(--t2)">—</td><td style="text-align:center;color:var(--blu)">BUY</td></tr>
+                <tr><td style="padding:3px 2px;color:var(--t1)">Düsseldorf 2</td><td style="text-align:center;color:var(--grn);font-weight:600">71%</td><td style="text-align:center">360W</td><td style="text-align:center;color:var(--grn)">SELL</td></tr>
+              </tbody>
+            </table>
+            <div style="text-align:center;font-size:9px;color:var(--t2);padding:4px">+27 weitere Nodes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: 48h Chart (8) + Order Book (4) -->
+      <div class="dash-layout" style="margin-bottom:12px">
+        <div class="card span-8">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div class="ctitle" style="margin-bottom:0">48h Strompreis + PV-Prognose</div>
+            <div style="font-size:9px;color:var(--t2)">☀️ peak 2.4 kW · Quelle: Energy-Charts API (DE-LU)</div>
+          </div>
+          <!-- Chart demo -->
+          <div style="display:flex;align-items:flex-end;gap:1.5px;height:120px;padding:0 2px;background:var(--bg2);border-radius:4px;padding:4px">
+            <!-- 24 demo bars with PV -->
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:45px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:35px;background:#3b82f6;border-radius:2px 2px 0 0;z-index:1;position:relative;outline:2px solid #fff"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:25px;background:#3b82f6;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:18px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:14px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:50px;background:#16a34a;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:85px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:70px;background:#16a34a;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:100px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:80px;background:#3b82f6;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:110px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:90px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:105px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:110px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:95px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:100px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:85px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:60px;background:#3b82f6;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:45px;background:#3b82f6;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:30px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:20px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:50px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:55px;background:#3b82f6;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:90px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:70px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:100px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:55px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:95px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:rgba(245,158,11,.15);border-top:1px solid rgba(245,158,11,.4);border-radius:2px 2px 0 0"></div><div style="flex:1;height:75px;background:#dc2626;border-radius:2px 2px 0 0;z-index:1;position:relative"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:55px;background:#3b82f6;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:40px;background:#3b82f6;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:25px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+            <div style="flex:1;position:relative;display:flex;align-items:flex-end"><div style="flex:1;height:20px;background:#16a34a;border-radius:2px 2px 0 0"></div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px">
+            <span>Jetzt</span><span>+12h</span><span>+24h</span><span>+36h</span><span>+48h</span>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:6px;font-size:9px">
+            <span style="display:flex;align-items:center;gap:3px;color:var(--t1)"><span style="width:8px;height:8px;background:#dc2626;border-radius:2px"></span>Verkaufen</span>
+            <span style="display:flex;align-items:center;gap:3px;color:var(--t1)"><span style="width:8px;height:8px;background:#16a34a;border-radius:2px"></span>Kaufen</span>
+            <span style="display:flex;align-items:center;gap:3px;color:var(--t1)"><span style="width:8px;height:8px;background:#3b82f6;border-radius:2px"></span>Halten</span>
+            <span style="display:flex;align-items:center;gap:3px;color:var(--t1)"><span style="width:8px;height:8px;background:rgba(245,158,11,.3);border:1px solid rgba(245,158,11,.5);border-radius:2px"></span>PV-Erzeugung</span>
+          </div>
+        </div>
+
+        <!-- Order Book -->
+        <div class="card span-4">
+          <div class="ctitle">Order Book <span style="color:var(--t2)">(4B / 6S)</span></div>
+          <div style="text-align:center;padding:5px;font-size:10px;color:var(--t1);border:1px solid var(--bdr);border-radius:4px;margin-bottom:8px">
+            Spread: <span style="color:var(--yel);font-weight:600">1.3 ct</span>
+            &nbsp;·&nbsp; <span style="color:var(--grn)">23.5</span>
+            &nbsp;↔&nbsp; <span style="color:var(--red)">22.2</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">
+            <div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="font-size:9px;color:var(--t2)"><th style="text-align:left;padding-bottom:3px;border-bottom:1px solid var(--bdr)">Buy ct</th><th>Wh</th><th>P</th></tr></thead>
+                <tbody>
+                  <tr><td style="padding:3px 1px;color:var(--grn);font-weight:600">23.5</td><td>200</td><td style="color:var(--t2)">8</td></tr>
+                  <tr><td style="padding:3px 1px;color:var(--grn);font-weight:600">22.0</td><td>100</td><td style="color:var(--t2)">5</td></tr>
+                  <tr><td style="padding:3px 1px;color:var(--grn);font-weight:600">21.5</td><td>50</td><td style="color:var(--t2)">3</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="font-size:9px;color:var(--t2)"><th style="text-align:left;padding-bottom:3px;border-bottom:1px solid var(--bdr)">Sell ct</th><th>Wh</th><th>P</th></tr></thead>
+                <tbody>
+                  <tr><td style="padding:3px 1px;color:var(--red);font-weight:600">22.2</td><td>150</td><td style="color:var(--t2)">7</td></tr>
+                  <tr><td style="padding:3px 1px;color:var(--red);font-weight:600">23.8</td><td>300</td><td style="color:var(--t2)">5</td></tr>
+                  <tr><td style="padding:3px 1px;color:var(--red);font-weight:600">24.5</td><td>80</td><td style="color:var(--t2)">4</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Mini form -->
+          <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:9px">
+            <div><div class="field-label">Typ</div><div class="field" style="font-size:10px">BUY ▾</div></div>
+            <div><div class="field-label">Wh</div><div class="field" style="font-size:10px">100</div></div>
+            <div><div class="field-label">ct/kWh</div><div class="field" style="font-size:10px">24.5</div></div>
+          </div>
+          <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <button class="btn btn-primary" style="font-size:9px;padding:5px">+ Hinzufügen</button>
+            <button class="btn" style="font-size:9px;padding:5px">⚡ Matching</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Blockchain -->
+      <div class="dash-layout">
+        <div class="card span-12">
+          <div class="ctitle">Blockchain-Identität & SMG-Zertifikate</div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;font-size:10px">
+            <div style="background:var(--bg2);padding:8px;border-radius:4px"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Netzwerk</div><div style="font-weight:600">AGUNG</div></div>
+            <div style="background:var(--bg2);padding:8px;border-radius:4px"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Status</div><div style="color:var(--grn);font-weight:600">On-Chain Live</div></div>
+            <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 2"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Hub Wallet</div><div style="font-family:monospace;font-size:9px;word-break:break-all">0x3A4f2B1C8D9E7F…</div></div>
+            <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 2"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Hub DID</div><div style="font-family:monospace;font-size:9px;color:var(--pur-light);word-break:break-all">did:peaq:0x3a4f2b…</div></div>
+            <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 3"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Gertrud Koch SMG-ZP</div><div style="font-family:monospace;font-size:9px;color:var(--ora)">DE0004972000000000000000000000001</div></div>
+            <div style="background:var(--bg2);padding:8px;border-radius:4px;grid-column:span 3"><div style="color:var(--t2);margin-bottom:2px;font-size:9px">Eilendorfer SMG-ZP</div><div style="font-family:monospace;font-size:9px;color:var(--ora)">DE0004972000000000000000000000002</div></div>
+          </div>
+          <!-- Cert upload -->
+          <div style="background:var(--bg2);padding:10px;border-radius:4px;margin-top:6px">
+            <div style="font-size:9px;color:var(--t2);margin-bottom:6px">SMG-Zertifikat hochladen (PEM oder Zählpunktbezeichnung)</div>
+            <div style="display:flex;gap:6px">
+              <input placeholder="Node ID (z.B. node_ha1)" class="field" style="flex:1;font-size:10px">
+              <input placeholder="Zertifikat PEM oder DE…" class="field" style="flex:3;font-size:10px">
+              <button class="btn btn-primary" style="white-space:nowrap;font-size:10px">Zertifikat setzen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+  </div>
+
+  <!-- ── 5. ANNOTATIONS ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">5 · Figma Setup Annotations</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;font-size:11px;line-height:1.7;color:var(--t1)">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t0);margin-bottom:8px">Grid & Layout</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">
+          <li>• Frame: 1440 × 900 Desktop</li>
+          <li>• 12-column grid, 14px gutter, 20px margin</li>
+          <li>• Card padding: 14px (all sides)</li>
+          <li>• Card border-radius: 8px</li>
+          <li>• Card border: 1px #27272a</li>
+          <li>• Card background: #0f0f12</li>
+          <li>• Inner containers: #18181b (bg2)</li>
+          <li>• Auto Layout: Vertical, 12px gap</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t0);margin-bottom:8px">Interactivity (Prototype)</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">
+          <li>• WS Live Dot: pulse animation (opacity 1→0.35→1, 2s)</li>
+          <li>• Battery bar: width transition 300ms ease</li>
+          <li>• Price color: instant on data update</li>
+          <li>• Hover states: background → bg3 (#27272a)</li>
+          <li>• Map: Leaflet → no Figma equivalent (use placeholder)</li>
+          <li>• Chart bars: CSS height, 1px gap, flex align-end</li>
+          <li>• Mode badge: 4 states, color-coded</li>
+          <li>• Order rows: hover → bg3, cancel button fades in</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t0);margin-bottom:8px">PV Overlay (48h Chart)</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">
+          <li>• Amber semi-transparent fill: rgba(245,158,11,0.15)</li>
+          <li>• Top border: 1px rgba(245,158,11,0.4)</li>
+          <li>• Positioned absolute, behind price bar (z-index 0)</li>
+          <li>• Height normalized to same 150px scale as prices</li>
+          <li>• Shown only when pvForecast48h.length &gt; 0</li>
+          <li>• Data source: PVSimulator (Spencer + isotropic sky)</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t0);margin-bottom:8px">Data Sources</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">
+          <li>• EPEX prices: HA sensor → Energycharts API → Demo</li>
+          <li>• PV forecast: PVSimulator (Spencer + isotropic sky)</li>
+          <li>• Node states: HA API every 1min, demo every 1min</li>
+          <li>• Order book: auto-refresh on WS events</li>
+          <li>• Blockchain: @peaq-network/sdk v0.2, demo fallback</li>
+          <li>• Map tiles: CartoDB Dark (cdn.jsdelivr.net/leaflet)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:var(--t3);padding:24px 0;border-top:1px solid var(--bdr)">
+    Peaq Energy Trading Hub · Figma Design Spec v3.2 · 2026
+  </div>
+
+</div>
+</body>
+</html>

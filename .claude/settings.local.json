@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:\\\\Users\\\\PCUser\\\\.claude\\\\projects\\\\c--Users-PCUser-Documents-projects-peaq-energy-trading\\\\memory\"\" 2>/dev/null || echo \"Memory dir listing failed \")",
+      "Bash(grep -l \"Testphase.*neuen\\\\|neuen.*Testphase\" /c/Users/PCUser/.claude/projects/c--Users-PCUser-Documents-projects-peaq-energy-trading/2bb1fb1b-d339-44c5-b223-13f60ffd6f1b.jsonl /c/Users/PCUser/.claude/projects/c--Users-PCUser-Documents-projects-peaq-energy-trading/2bb1fb1b-d339-44c5-b223-13f60ffd6f1b/subagents/*.jsonl)",
+      "Bash(grep -o \"\"text\"\":\"\"[^\"\"]*[Mm]a[Ll]o[^\"\"]*\"\" C:/Users/PCUser/.claude/projects/c--Users-PCUser-Documents-projects-peaq-energy-trading/2bb1fb1b-d339-44c5-b223-13f60ffd6f1b.jsonl)",
+      "Bash(find C:/Users/PCUser/ -name *.jsonl)",
+      "Bash(find C:/Users/PCUser/ -name *.md -o -name *.txt -o -name *.json)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -o \"\"text\"\":\"\"[^\"\"]*[Rr]edispatch[^\"\"]*\"\" C:/Users/PCUser/.claude/projects/c--Users-PCUser-Documents-projects-peaq-energy-trading/2bb1fb1b-d339-44c5-b223-13f60ffd6f1b.jsonl)",
+      "Bash(grep -o \"\"text\"\":\"\"[^\"\"]*[Rr]edispatch[^\"\"]*\"\" C:/Users/PCUser/.claude/projects/c--Users-PCUser-Documents-projects-peaq-energy-trading/2bb1fb1b-d339-44c5-b223-13f60ffd6f1b/subagents/agent-adf858e0da8bf67e1.jsonl)",
+      "Bash(find C:/Users/PCUser/ -name *.md -newer 'C:/Users/PCUser/Documents/obsidian/energyninja/01 - Projektübersicht.md')",
+      "Bash(find C:/Users/PCUser/Documents/projects/ -name *.md)",
+      "Bash(find C:/Users/PCUser/Documents/projects/energy_flexibility_data_model-main-efdm_v1.1/ -name *.md -o -name *.json)",
+      "Bash(find C:/Users/PCUser/ -name *.md -o -name *.html -o -name *.txt)",
+      "Bash(node --check \"c:/Users/PCUser/Documents/projects/peaq-energy-trading/rootfs/app/index.js\")"
+    ]
+  }
+}

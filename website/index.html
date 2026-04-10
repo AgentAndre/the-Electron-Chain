@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Electron Chain — P2P Energy Sharing für Home Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1520;
+    --surface: #111a28;
+    --border: #1e3050;
+    --electron: #00d4ff;
+    --electron-dim: #0066aa;
+    --amber: #f59e0b;
+    --amber-dim: #92610a;
+    --green: #22c55e;
+    --text: #e2eaf5;
+    --text-muted: #6b8aaa;
+    --text-dim: #344a66;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* CANVAS BACKGROUND */
+  #canvas-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  /* LAYOUT */
+  .wrap { position: relative; z-index: 1; }
+
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 100px 32px;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background: rgba(8,12,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--electron);
+    letter-spacing: 0.08em;
+    text-decoration: none;
+  }
+
+  .nav-logo span { color: var(--amber); }
+
+  nav ul {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  nav ul a {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  nav ul a:hover { color: var(--electron); }
+
+  .nav-cta {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--bg);
+    background: var(--electron);
+    padding: 8px 18px;
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: background 0.2s;
+  }
+
+  .nav-cta:hover { background: #fff; }
+
+  /* HERO */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 120px;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 60px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--electron);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--electron);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+  }
+
+  h1 .tec { color: var(--electron); }
+  h1 .line2 { color: var(--text-muted); font-weight: 400; display: block; }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 480px;
+    margin-bottom: 48px;
+    line-height: 1.8;
+  }
+
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+
+  .btn-group { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .btn-primary {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--electron);
+    padding: 14px 28px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,212,255,0.3);
+  }
+
+  .btn-secondary {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--electron);
+    border: 1px solid var(--electron-dim);
+    padding: 14px 28px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--electron);
+    background: var(--glow);
+  }
+
+  /* ATOM DIAGRAM */
+  .atom-diagram {
+    position: relative;
+    width: 420px;
+    height: 420px;
+    flex-shrink: 0;
+  }
+
+  .atom-diagram svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: -1px;
+  }
+
+  .stat {
+    background: var(--bg);
+    padding: 32px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--electron);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+
+  /* SECTION HEADERS */
+  .section-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--amber);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-tag::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 60px;
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+  }
+
+  /* PHYSICS SECTION */
+  #physik { background: var(--bg2); }
+
+  #physik-inner { max-width: 1100px; margin: 0 auto; padding: 100px 32px; }
+
+  .physics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+    margin-top: 60px;
+  }
+
+  .physics-text p {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+
+  .physics-text strong { color: var(--electron); font-weight: 500; }
+
+  .chain-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    position: relative;
+  }
+
+  .chain-visual::before {
+    content: 'ELECTRON FLOW';
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    position: absolute;
+    top: 16px; right: 16px;
+  }
+
+  .chain-nodes {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .chain-node {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadein 0.6s ease both;
+  }
+
+  .chain-node:last-child { border-bottom: none; }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .node-icon {
+    width: 44px; height: 44px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .node-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .node-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .node-flow {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  /* CONNECTOR */
+  .connector {
+    display: flex;
+    align-items: center;
+    padding: 6px 0 6px 22px;
+  }
+
+  .connector-line {
+    width: 1px;
+    height: 20px;
+    background: linear-gradient(to bottom, var(--electron), var(--amber));
+    margin-right: 14px;
+    flex-shrink: 0;
+  }
+
+  .connector-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--electron);
+    letter-spacing: 0.15em;
+  }
+
+  /* REGULATORIK */
+  #regulatorik { position: relative; }
+
+  .reg-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-top: 60px;
+  }
+
+  .reg-card {
+    background: var(--bg);
+    padding: 32px;
+    transition: background 0.2s;
+    position: relative;
+  }
+
+  .reg-card:hover { background: var(--surface); }
+
+  .reg-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--electron);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .reg-card:hover::after { opacity: 1; }
+
+  .reg-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.1);
+    border: 1px solid var(--amber-dim);
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 16px;
+    letter-spacing: 0.1em;
+  }
+
+  .reg-card p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .reg-card p strong { color: var(--text); font-weight: 500; }
+
+  /* TIMELINE */
+  .reg-timeline {
+    margin-top: 60px;
+    position: relative;
+    padding-left: 32px;
+    border-left: 1px solid var(--border);
+  }
+
+  .tl-item {
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -37px; top: 4px;
+    width: 10px; height: 10px;
+    background: var(--electron);
+    border-radius: 50%;
+  }
+
+  .tl-year {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--electron);
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+  }
+
+  .tl-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .tl-body {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  /* MITMACHEN */
+  #mitmachen { background: var(--bg2); }
+  #mitmachen-inner { max-width: 1100px; margin: 0 auto; padding: 100px 32px; }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-top: 60px;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .step-card:hover {
+    border-color: var(--electron-dim);
+    transform: translateY(-4px);
+  }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    line-height: 1;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .step-card h3 { font-size: 1.1rem; margin-bottom: 12px; }
+
+  .step-card p {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+    margin-bottom: 20px;
+  }
+
+  .step-card p strong { color: var(--text); font-weight: 500; }
+
+  .step-list {
+    list-style: none;
+    margin-top: 16px;
+  }
+
+  .step-list li {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .step-list li:last-child { border-bottom: none; }
+
+  .step-list li::before {
+    content: '→';
+    color: var(--electron);
+    flex-shrink: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    margin-top: 1px;
+  }
+
+  .step-glow {
+    position: absolute;
+    bottom: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,212,255,0.08), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ARCHITECTURE */
+  .arch-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px;
+    margin-top: 60px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .arch-box .highlight { color: var(--electron); }
+  .arch-box .amber { color: var(--amber); }
+  .arch-box .green { color: var(--green); }
+  .arch-box .comment { color: var(--text-dim); font-style: italic; }
+
+  /* GITHUB CTA */
+  #github {
+    text-align: center;
+    padding: 120px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #github::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,212,255,0.05), transparent 70%);
+    pointer-events: none;
+  }
+
+  #github h2 { margin-bottom: 16px; }
+  #github p {
+    color: var(--text-muted);
+    max-width: 520px;
+    margin: 0 auto 40px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  footer a { color: var(--electron-dim); text-decoration: none; }
+  footer a:hover { color: var(--electron); }
+
+  /* CODE SNIPPET */
+  .code-block {
+    background: #050810;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--electron);
+    padding: 24px 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 24px;
+    overflow-x: auto;
+    line-height: 1.9;
+  }
+
+  .code-block .k { color: var(--electron); }
+  .code-block .s { color: var(--green); }
+  .code-block .c { color: var(--text-dim); font-style: italic; }
+
+  /* TAG */
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 6px;
+    display: inline-block;
+  }
+
+  .tag.blue { border-color: var(--electron-dim); color: var(--electron); }
+  .tag.amber { border-color: var(--amber-dim); color: var(--amber); }
+  .tag.green { border-color: #166534; color: var(--green); }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .atom-diagram { display: none; }
+    .physics-grid { grid-template-columns: 1fr; }
+    .reg-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: 1fr; }
+    nav ul { display: none; }
+    .stats-bar { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas-bg"></canvas>
+
+<div class="wrap">
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#"><span>TEC</span> // THE ELECTRON CHAIN</a>
+  <ul>
+    <li><a href="#physik">Physik</a></li>
+    <li><a href="#regulatorik">Regulatorik</a></li>
+    <li><a href="#mitmachen">Mitmachen</a></li>
+    <li><a href="#github">GitHub</a></li>
+  </ul>
+  <a class="nav-cta" href="https://github.com" target="_blank">⭐ Star on GitHub</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow">Open Source · Home Assistant Addon · peaq Network</div>
+      <h1>
+        <span class="tec">The Electron Chain</span>
+        <span class="line2">Zurück zur Physik.</span>
+      </h1>
+      <p class="hero-sub">
+        Elektronen fließen immer auf dem kürzesten Weg. <strong>The Electron Chain</strong> macht genau das digital sichtbar — P2P Energy Sharing zwischen Nachbarn, transparent auf der Blockchain, gesteuert durch dein Home Assistant HEMS.
+      </p>
+      <div style="margin-bottom: 32px;">
+        <span class="tag blue">§42c EnWG</span>
+        <span class="tag amber">peaq Network</span>
+        <span class="tag green">Open Source</span>
+        <span class="tag">Home Assistant</span>
+      </div>
+      <div class="btn-group">
+        <a class="btn-primary" href="#mitmachen">Jetzt mitmachen →</a>
+        <a class="btn-secondary" href="https://github.com" target="_blank">⌥ GitHub ansehen</a>
+      </div>
+    </div>
+    <div class="atom-diagram">
+      <svg viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="cg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Background glow -->
+        <circle cx="210" cy="210" r="150" fill="url(#cg)"/>
+
+        <!-- Orbit rings -->
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#1e3050" stroke-width="1" transform="rotate(-30 210 210)"/>
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#1e3050" stroke-width="1" transform="rotate(30 210 210)"/>
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#1e3050" stroke-width="1" transform="rotate(90 210 210)"/>
+
+        <!-- Animated orbit paths (visible arcs) -->
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="80 400" stroke-opacity="0.6" transform="rotate(-30 210 210)">
+          <animateTransform attributeName="transform" type="rotate" from="-30 210 210" to="330 210 210" dur="8s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="80 400" stroke-opacity="0.6" transform="rotate(30 210 210)">
+          <animateTransform attributeName="transform" type="rotate" from="30 210 210" to="390 210 210" dur="11s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="210" cy="210" rx="155" ry="55" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="80 400" stroke-opacity="0.6" transform="rotate(90 210 210)">
+          <animateTransform attributeName="transform" type="rotate" from="90 210 210" to="450 210 210" dur="14s" repeatCount="indefinite"/>
+        </ellipse>
+
+        <!-- Electrons on orbit 1 -->
+        <circle cx="0" cy="0" r="7" fill="#00d4ff" filter="url(#glow)">
+          <animateMotion dur="8s" repeatCount="indefinite">
+            <mpath href="#o1"/>
+          </animateMotion>
+        </circle>
+        <path id="o1" d="M 365,210 A 155,55 0 1 0 55,210 A 155,55 0 1 0 365,210" fill="none" transform="rotate(-30 210 210)"/>
+
+        <!-- Electrons on orbit 2 -->
+        <circle cx="0" cy="0" r="6" fill="#f59e0b" filter="url(#glow)">
+          <animateMotion dur="11s" repeatCount="indefinite" keyPoints="0.5;1;0;0.5" keyTimes="0;0.5;0.5;1" calcMode="linear">
+            <mpath href="#o2"/>
+          </animateMotion>
+        </circle>
+        <path id="o2" d="M 365,210 A 155,55 0 1 0 55,210 A 155,55 0 1 0 365,210" fill="none" transform="rotate(30 210 210)"/>
+
+        <!-- Electrons on orbit 3 -->
+        <circle cx="0" cy="0" r="5" fill="#22c55e" filter="url(#glow)">
+          <animateMotion dur="14s" repeatCount="indefinite" keyPoints="0.7;1;0;0.7" keyTimes="0;0.3;0.3;1" calcMode="linear">
+            <mpath href="#o3"/>
+          </animateMotion>
+        </circle>
+        <path id="o3" d="M 365,210 A 155,55 0 1 0 55,210 A 155,55 0 1 0 365,210" fill="none" transform="rotate(90 210 210)"/>
+
+        <!-- Nucleus -->
+        <circle cx="210" cy="210" r="28" fill="#0d1520" stroke="#1e3050" stroke-width="1.5"/>
+        <circle cx="210" cy="210" r="18" fill="#00d4ff" opacity="0.15"/>
+        <circle cx="210" cy="210" r="10" fill="#00d4ff" opacity="0.4" filter="url(#glow)"/>
+
+        <!-- Labels -->
+        <text x="210" y="90" text-anchor="middle" font-family="Space Mono, monospace" font-size="9" fill="#6b8aaa" letter-spacing="2">PRODUZENT</text>
+        <text x="210" y="345" text-anchor="middle" font-family="Space Mono, monospace" font-size="9" fill="#6b8aaa" letter-spacing="2">VERBRAUCHER</text>
+        <text x="66" y="218" text-anchor="end" font-family="Space Mono, monospace" font-size="9" fill="#6b8aaa" letter-spacing="1">NETZ</text>
+        <text x="354" y="218" text-anchor="start" font-family="Space Mono, monospace" font-size="9" fill="#6b8aaa" letter-spacing="1">P2P</text>
+
+        <!-- Center label -->
+        <text x="210" y="205" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff" letter-spacing="1">TEC</text>
+        <text x="210" y="218" text-anchor="middle" font-family="Space Mono, monospace" font-size="6" fill="#344a66">CORE</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">§42c</div>
+    <div class="stat-label">EnWG — Rechtsrahmen Energy Sharing DE</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">peaq</div>
+    <div class="stat-label">Blockchain-Netzwerk für DePIN Energy</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">MIT</div>
+    <div class="stat-label">Open Source Lizenz — frei nutzbar</div>
+  </div>
+</div>
+
+<!-- PHYSIK -->
+<div id="physik" style="background: var(--bg2);">
+<div id="physik-inner">
+  <div class="section-tag">01 — Warum TEC?</div>
+  <h2>Die Physik der<br>Elektronen kennt<br>keine Umwege.</h2>
+
+  <div class="physics-grid">
+    <div class="physics-text">
+      <p>Ein Elektron, das deine PV-Anlage verlässt, sucht sich stets den <strong>Weg des geringsten Widerstands</strong>. Wenn dein Nachbar gerade seinen Wasserkocher anmacht, fließt der Strom physikalisch direkt dorthin — durch das Niederspannungsnetz, über wenige Meter Kabel.</p>
+
+      <p>Trotzdem bucht das heutige System diesen Stromfluss über <strong>Bilanzkreise, Messstellenbetreiber, Netzbetreiber, Versorger</strong> und zurück — mit Gebühren und Zeitverzögerungen auf jeder Stufe. Du als Prosumer bekommst einen minimalen Einspeisetarif, dein Nachbar zahlt vollen Marktpreis.</p>
+
+      <p><strong>The Electron Chain</strong> macht die physikalische Realität zur wirtschaftlichen Realität: Deine erzeugten Elektronen werden als Token auf der peaq-Blockchain repräsentiert, direkt deinem Nachbarn zugeteilt — <strong>transparent, unveränderlich, in Echtzeit</strong>.</p>
+
+      <p>Das ist kein neues Konzept — es ist die <strong>digitale Abbildung der Physik</strong>, wie sie schon immer war.</p>
+
+      <div class="code-block">
+<span class="c"># Home Assistant HEMS → peaq Network</span>
+<span class="k">surplus_kwh</span> = pv_generation - home_consumption
+<span class="k">if</span> surplus_kwh &gt; 0.1:
+    tec.register_token(
+        kwh=surplus_kwh,
+        <span class="s">origin="solar_roof_192.168.1.10"</span>,
+        recipient=<span class="s">"neighbor_did:peaq:abc123"</span>,
+        grid_zone=<span class="s">"DE_NSP_WEST_042"</span>
+    )
+<span class="c"># → Blockchain commit in &lt;3s</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="chain-visual">
+        <div class="chain-nodes">
+
+          <div class="chain-node">
+            <div class="node-icon">🏘️</div>
+            <div>
+              <div class="node-label">Lokale Prosumer-Gemeinschaft</div>
+              <div class="node-sub">PV, Speicher, Wallbox, Wärmepumpe — alle hinter dem SMGW</div>
+            </div>
+            <div class="node-flow">Flex-Pool</div>
+          </div>
+
+          <div class="connector">
+            <div class="connector-line"></div>
+            <div class="connector-label">BSI TR-03109</div>
+          </div>
+
+          <div class="chain-node" style="border-left: 2px solid var(--electron); padding-left: 10px;">
+            <div class="node-icon">📡</div>
+            <div>
+              <div class="node-label">SMGW / Home Assistant HEMS</div>
+              <div class="node-sub" style="color: var(--electron); font-family: 'Space Mono', monospace; font-size: 0.68rem;">ID: DE000123456789 · TLS-Zertifikat</div>
+              <div class="node-sub">Bündelt lokale Flexibilität · signiert Messwerte · erstellt Token</div>
+            </div>
+            <div class="node-flow" style="color: var(--electron)">Vertrauensanker</div>
+          </div>
+
+          <div class="connector">
+            <div class="connector-line"></div>
+            <div class="connector-label">DID-SIGNIERTER COMMIT</div>
+          </div>
+
+          <div class="chain-node">
+            <div class="node-icon">⛓️</div>
+            <div>
+              <div class="node-label">peaq Network</div>
+              <div class="node-sub">SMGW-ID → DID-Mapping · Token-Commit · Herkunftsnachweis</div>
+            </div>
+            <div class="node-flow" style="color: var(--amber)">~2.8s</div>
+          </div>
+
+          <div class="connector">
+            <div class="connector-line"></div>
+            <div class="connector-label">BILANZKREIS-SETTLEMENT</div>
+          </div>
+
+          <div class="chain-node">
+            <div class="node-icon">🤝</div>
+            <div>
+              <div class="node-label">Energiegenossenschaft (BKV)</div>
+              <div class="node-sub">§42c-konforme Abrechnung · je SMGW-ID · EPEX Spot-basiert</div>
+            </div>
+            <div class="node-flow" style="color: var(--green)">✓ P2P</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DIAGRAM SECTION -->
+<div style="background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 0;">
+  <div style="max-width: 1100px; margin: 0 auto; padding: 80px 32px 64px;">
+    <div class="section-tag" style="margin-bottom: 16px;">01b — Systemarchitektur</div>
+    <h2 style="margin-bottom: 12px;">Das SMGW als<br>Vertrauensanker der Gemeinschaft.</h2>
+    <p style="color: var(--text-muted); max-width: 620px; margin-bottom: 40px; font-size: 0.95rem;">
+      Nicht einzelne Anlagen — das <strong style="color:var(--text)">Smart Meter Gateway</strong> bündelt die lokale Flexibilität aller Prosumer. Seine BSI-konforme SMGW-ID und das TLS-Zertifikat sind der kryptografische Ursprung jedes Blockchain-Commits auf dem peaq Network.
+    </p>
+  </div>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px 80px;">
+    <div style="border: 1px solid var(--border); background: #080c10; overflow: hidden;">
+<svg viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080c10"/>
+      <stop offset="100%" stop-color="#0d1520"/>
+    </linearGradient>
+    <radialGradient id="smgwGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vnbGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="peaqGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="prosumerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrowCyan" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#00d4ff" opacity="0.8"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#f59e0b" opacity="0.8"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#a855f7" opacity="0.8"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#22c55e" opacity="0.8"/>
+    </marker>
+    <marker id="arrowAmberRev" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="7 0, 0 3.5, 7 7" fill="#f59e0b" opacity="0.6"/>
+    </marker>
+    <filter id="glowF" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- BG -->
+  <rect width="1200" height="820" fill="url(#bgGrad)"/>
+  <!-- Grid -->
+  <g opacity="0.03" stroke="#00d4ff" stroke-width="0.5">
+    <line x1="0" y1="100" x2="1200" y2="100"/><line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/><line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/><line x1="0" y1="600" x2="1200" y2="600"/>
+    <line x1="0" y1="700" x2="1200" y2="700"/>
+    <line x1="150" y1="0" x2="150" y2="820"/><line x1="300" y1="0" x2="300" y2="820"/>
+    <line x1="450" y1="0" x2="450" y2="820"/><line x1="600" y1="0" x2="600" y2="820"/>
+    <line x1="750" y1="0" x2="750" y2="820"/><line x1="900" y1="0" x2="900" y2="820"/>
+    <line x1="1050" y1="0" x2="1050" y2="820"/>
+  </g>
+
+  <!-- ── TITLE ── -->
+  <text x="32" y="42" font-family="Space Mono, monospace" font-size="9" fill="#00d4ff" letter-spacing="3" opacity="0.6">THE ELECTRON CHAIN</text>
+  <text x="32" y="64" font-family="Syne, sans-serif" font-weight="800" font-size="20" fill="#e2eaf5" letter-spacing="-0.5">Energiegemeinschaft — SMGW als Vertrauensanker &amp; Flex-Aggregator</text>
+  <text x="32" y="82" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="#6b8aaa">§ 42c EnWG · BSI TR-03109 · peaq DID · Bilanzkreis-Settlement</text>
+  <line x1="32" y1="96" x2="1168" y2="96" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- ── ZONE BANDS ── -->
+  <rect x="32" y="104" width="400" height="580" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="48" y="121" font-family="Space Mono, monospace" font-size="8" fill="#344a66" letter-spacing="2">KUNDENSEITE · LOKALE PROSUMER</text>
+
+  <rect x="455" y="104" width="320" height="580" rx="2" fill="#080e18" stroke="#00d4ff" stroke-width="1" opacity="0.7"/>
+  <text x="471" y="121" font-family="Space Mono, monospace" font-size="8" fill="#00d4ff" letter-spacing="2" opacity="0.7">SMGW / HEMS · VERTRAUENSANKER</text>
+
+  <rect x="798" y="104" width="370" height="580" rx="2" fill="#0a1018" stroke="#1e3050" stroke-width="1"/>
+  <text x="814" y="121" font-family="Space Mono, monospace" font-size="8" fill="#344a66" letter-spacing="2">MARKT- UND NETZSEITE</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PROSUMER BLOCK (left) — generic, no individual assets -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <circle cx="232" cy="360" r="140" fill="url(#prosumerGlow)"/>
+
+  <!-- Outer box -->
+  <rect x="52" y="138" width="360" height="520" rx="2" fill="none" stroke="#1e3050" stroke-width="0"/>
+
+  <!-- 3 generic household nodes stacked -->
+  <!-- Node 1 -->
+  <rect x="68" y="148" width="310" height="72" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1"/>
+  <rect x="68" y="148" width="5" height="72" rx="1" fill="#00d4ff" opacity="0.5"/>
+  <text x="86" y="167" font-family="Space Mono, monospace" font-size="8" fill="#6b8aaa" letter-spacing="1">TEILNEHMER 1</text>
+  <text x="86" y="181" font-family="Syne, sans-serif" font-weight="700" font-size="11" fill="#e2eaf5">Prosumer A</text>
+  <text x="86" y="195" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Lokale Erzeugung &amp; Speicher · §14a-Lasten</text>
+  <!-- Flex bar -->
+  <rect x="86" y="204" width="130" height="5" rx="1" fill="#1e3050"/>
+  <rect x="86" y="204" width="95" height="5" rx="1" fill="#22c55e" opacity="0.75"/>
+  <text x="222" y="210" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">+3.8 kWh</text>
+  <text x="316" y="210" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Überschuss</text>
+
+  <!-- Node 2 -->
+  <rect x="68" y="233" width="310" height="72" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1"/>
+  <rect x="68" y="233" width="5" height="72" rx="1" fill="#22c55e" opacity="0.5"/>
+  <text x="86" y="252" font-family="Space Mono, monospace" font-size="8" fill="#6b8aaa" letter-spacing="1">TEILNEHMER 2</text>
+  <text x="86" y="266" font-family="Syne, sans-serif" font-weight="700" font-size="11" fill="#e2eaf5">Prosumer B</text>
+  <text x="86" y="280" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Flexibler Verbrauch · Wärmepumpe · EV</text>
+  <rect x="86" y="289" width="130" height="5" rx="1" fill="#1e3050"/>
+  <rect x="86" y="289" width="50" height="5" rx="1" fill="#f59e0b" opacity="0.7"/>
+  <text x="222" y="295" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b">−2.1 kWh</text>
+  <text x="316" y="295" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Bedarf</text>
+
+  <!-- Node 3 -->
+  <rect x="68" y="318" width="310" height="72" rx="2" fill="#111a28" stroke="#1e3050" stroke-width="1"/>
+  <rect x="68" y="318" width="5" height="72" rx="1" fill="#f59e0b" opacity="0.4"/>
+  <text x="86" y="337" font-family="Space Mono, monospace" font-size="8" fill="#6b8aaa" letter-spacing="1">TEILNEHMER 3</text>
+  <text x="86" y="351" font-family="Syne, sans-serif" font-weight="700" font-size="11" fill="#e2eaf5">Mieter C</text>
+  <text x="86" y="365" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Nur-Verbraucher · Haushalt</text>
+  <rect x="86" y="374" width="130" height="5" rx="1" fill="#1e3050"/>
+  <rect x="86" y="374" width="32" height="5" rx="1" fill="#f59e0b" opacity="0.5"/>
+  <text x="222" y="380" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b">−0.8 kWh</text>
+  <text x="316" y="380" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Bedarf</text>
+
+  <!-- Aggregated flex bubble -->
+  <rect x="68" y="406" width="310" height="60" rx="2" fill="#0a1018" stroke="#00d4ff" stroke-width="1" opacity="0.8"/>
+  <text x="232" y="426" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#344a66" letter-spacing="1">AGGREGIERTES FLEX-SIGNAL</text>
+  <!-- Big bar -->
+  <rect x="86" y="432" width="274" height="10" rx="2" fill="#1e3050"/>
+  <rect x="86" y="432" width="185" height="10" rx="2" fill="#00d4ff" opacity="0.5">
+    <animate attributeName="width" values="150;195;165;185" dur="4s" repeatCount="indefinite"/>
+  </rect>
+  <text x="232" y="455" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#00d4ff">Netto: +0.9 kWh · 15-min-Intervall</text>
+
+  <!-- More participants hint -->
+  <text x="232" y="490" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#344a66" letter-spacing="1">· · ·  weitere Teilnehmer  · · ·</text>
+
+  <!-- Gemeinschaft label -->
+  <rect x="68" y="504" width="310" height="32" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="232" y="517" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">Energiegemeinschaft</text>
+  <text x="232" y="529" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Bürger-Energiegen. / §42c-eG / Wohnquartier</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- SMGW / HEMS CENTRAL BOX -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <circle cx="615" cy="370" r="130" fill="url(#smgwGlow)"/>
+
+  <rect x="465" y="134" width="300" height="530" rx="3" fill="#080e18" stroke="#00d4ff" stroke-width="1.5"/>
+  <!-- Top accent -->
+  <rect x="465" y="134" width="300" height="26" rx="3" fill="#00d4ff" opacity="0.07"/>
+  <text x="615" y="149" text-anchor="middle" font-family="Space Mono, monospace" font-size="9" fill="#00d4ff" letter-spacing="2">SMGW / HEMS</text>
+  <text x="615" y="160" text-anchor="middle" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66" letter-spacing="1">BSI TR-03109 · HEMS TEC-ADDON</text>
+  <line x1="475" y1="168" x2="755" y2="168" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- SMGW-ID block -->
+  <rect x="477" y="176" width="276" height="58" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
+  <text x="489" y="191" font-family="Space Mono, monospace" font-size="7.5" fill="#344a66" letter-spacing="1">SMGW-IDENTIFIER</text>
+  <text x="489" y="207" font-family="Space Mono, monospace" font-size="11" fill="#00d4ff" filter="url(#glowF)">DE000123456789</text>
+  <text x="489" y="221" font-family="Space Mono, monospace" font-size="7" fill="#344a66">MeteringPointID · EIC · OBIS-Kennzahl</text>
+  <text x="741" y="221" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓ MaStR</text>
+
+  <!-- TLS CERT block -->
+  <rect x="477" y="242" width="132" height="72" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
+  <text x="489" y="257" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="1">TLS-ZERTIFIKAT</text>
+  <text x="489" y="271" font-family="Space Mono, monospace" font-size="7.5" fill="#00d4ff">X.509 / BSI</text>
+  <rect x="489" y="277" width="58" height="3" rx="1" fill="#00d4ff" opacity="0.4"/>
+  <rect x="489" y="283" width="42" height="3" rx="1" fill="#00d4ff" opacity="0.2"/>
+  <rect x="489" y="289" width="50" height="3" rx="1" fill="#00d4ff" opacity="0.3"/>
+  <text x="489" y="304" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓ BSI-konform</text>
+
+  <!-- peaq DID block -->
+  <rect x="617" y="242" width="136" height="72" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
+  <text x="629" y="257" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="1">peaq DID</text>
+  <text x="629" y="271" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">did:peaq:</text>
+  <text x="629" y="283" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">0xA3f7c8…</text>
+  <text x="629" y="295" font-family="Space Mono, monospace" font-size="6.5" fill="#344a66">SMGW-ID Mapping</text>
+  <text x="629" y="307" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓ on-chain</text>
+
+  <!-- Cert flow arrow inside box -->
+  <line x1="611" y1="278" x2="616" y2="278" stroke="#00d4ff" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.7"/>
+
+  <!-- Flex aggregation engine -->
+  <rect x="477" y="322" width="276" height="78" rx="2" fill="#050810" stroke="#00d4ff" stroke-width="1" opacity="0.7"/>
+  <text x="615" y="339" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#00d4ff" letter-spacing="1">FLEX-AGGREGATION ENGINE</text>
+  <line x1="487" y1="344" x2="741" y2="344" stroke="#1e3050" stroke-width="1"/>
+  <text x="489" y="358" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Viertelstunden-Messwerte aller Zählpunkte</text>
+  <text x="489" y="371" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">§14a-Signal → lastgeführte Steuerung</text>
+  <!-- animated bar -->
+  <rect x="489" y="378" width="244" height="7" rx="1" fill="#1e3050"/>
+  <rect x="489" y="378" width="160" height="7" rx="1" fill="#00d4ff" opacity="0.4">
+    <animate attributeName="width" values="120;175;140;160" dur="5s" repeatCount="indefinite"/>
+  </rect>
+  <text x="741" y="385" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff">live</text>
+
+  <!-- Token creation -->
+  <rect x="477" y="408" width="276" height="54" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
+  <text x="615" y="424" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa" letter-spacing="1">TOKEN-ERSTELLUNG</text>
+  <text x="489" y="439" font-family="Space Mono, monospace" font-size="8" fill="#e2eaf5">{smgw_id, kwh, ts, grid_zone}</text>
+  <text x="489" y="452" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">sign(privKey_SMGW) → peaq TX</text>
+
+  <!-- n8n / HA automation note -->
+  <rect x="477" y="470" width="130" height="36" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="542" y="483" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">n8n Workflow</text>
+  <text x="542" y="496" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#f59e0b">EPEX Spot API</text>
+
+  <rect x="615" y="470" width="138" height="36" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="684" y="483" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Home Assistant</text>
+  <text x="684" y="496" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#00d4ff">TEC Add-on</text>
+
+  <!-- Status -->
+  <rect x="477" y="514" width="276" height="22" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
+  <circle cx="489" cy="525" r="4" fill="#22c55e"/>
+  <text x="498" y="528" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">AKTIV · verschlüsselt · BSI-geeicht · 15-min</text>
+
+  <!-- SMGW label at bottom -->
+  <text x="615" y="555" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff" opacity="0.5" letter-spacing="2">EINZIGER KOMMUNIKATIONSPUNKT</text>
+  <text x="615" y="566" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="1">KEINE EINZELASSETS SICHTBAR — NUR DAS GATEWAY</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- VNB (right top) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <circle cx="984" cy="240" r="90" fill="url(#vnbGlow)"/>
+  <rect x="812" y="134" width="344" height="168" rx="3" fill="#0d1520" stroke="#f59e0b" stroke-width="1.2" opacity="0.9"/>
+  <rect x="812" y="134" width="344" height="22" rx="3" fill="#f59e0b" opacity="0.06"/>
+  <text x="984" y="148" text-anchor="middle" font-family="Space Mono, monospace" font-size="8.5" fill="#f59e0b" letter-spacing="2">NETZBETREIBER (VNB)</text>
+  <text x="984" y="159" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Niederspannungsnetz · §14a EnWG · CLS</text>
+  <line x1="822" y1="164" x2="1146" y2="164" stroke="#1e3050" stroke-width="1"/>
+  <!-- Grid viz -->
+  <g transform="translate(860, 175)" opacity="0.65">
+    <line x1="0" y1="0" x2="80" y2="0" stroke="#f59e0b" stroke-width="1.2"/>
+    <line x1="0" y1="22" x2="80" y2="22" stroke="#f59e0b" stroke-width="1.2"/>
+    <line x1="13" y1="0" x2="13" y2="22" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="40" y1="0" x2="40" y2="22" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="67" y1="0" x2="67" y2="22" stroke="#f59e0b" stroke-width="1"/>
+    <circle cx="13" cy="0" r="3" fill="#f59e0b"/>
+    <circle cx="40" cy="0" r="3" fill="#f59e0b"/>
+    <circle cx="67" cy="0" r="3" fill="#f59e0b"/>
+    <circle cx="13" cy="22" r="3" fill="#f59e0b"/>
+    <circle cx="40" cy="22" r="3" fill="#f59e0b"/>
+    <circle cx="67" cy="22" r="3" fill="#f59e0b"/>
+    <circle cx="40" cy="11" r="8" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  </g>
+  <rect x="822" y="210" width="316" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="980" y="223" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">SMGW-Datenabruf via CLS-Schnittstelle</text>
+  <rect x="822" y="234" width="316" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="980" y="247" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">§14a Steuersignal → HEMS Flex-Reaktion</text>
+  <rect x="822" y="258" width="316" height="34" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="980" y="271" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Bilanzkreis-Anmeldung der eG · Netzanschluss</text>
+  <text x="980" y="284" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Zählpunktbezug · Messpunkt je SMGW-ID</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- peaq NETWORK (right middle) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <circle cx="984" cy="510" r="100" fill="url(#peaqGlow)"/>
+  <rect x="812" y="322" width="344" height="216" rx="3" fill="#0d1520" stroke="#a855f7" stroke-width="1.2" opacity="0.9"/>
+  <rect x="812" y="322" width="344" height="22" rx="3" fill="#a855f7" opacity="0.06"/>
+  <text x="984" y="336" text-anchor="middle" font-family="Space Mono, monospace" font-size="8.5" fill="#a855f7" letter-spacing="2">peaq NETWORK</text>
+  <text x="984" y="347" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">DePIN · DID Registry · Energy Token Smart Contract</text>
+  <line x1="822" y1="352" x2="1146" y2="352" stroke="#1e3050" stroke-width="1"/>
+
+  <!-- blockchain blocks -->
+  <g transform="translate(830, 362)">
+    <rect x="0" y="0" width="44" height="44" rx="2" fill="#16082a" stroke="#a855f7" stroke-width="1"/>
+    <text x="22" y="14" text-anchor="middle" font-family="Space Mono, monospace" font-size="6" fill="#a855f7">#4821</text>
+    <text x="22" y="25" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#6b8aaa">DID+kWh</text>
+    <text x="22" y="37" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓</text>
+    <line x1="46" y1="22" x2="56" y2="22" stroke="#a855f7" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.7"/>
+    <rect x="58" y="0" width="44" height="44" rx="2" fill="#16082a" stroke="#a855f7" stroke-width="1"/>
+    <text x="80" y="14" text-anchor="middle" font-family="Space Mono, monospace" font-size="6" fill="#a855f7">#4822</text>
+    <text x="80" y="25" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#6b8aaa">Token TX</text>
+    <text x="80" y="37" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓</text>
+    <line x1="104" y1="22" x2="114" y2="22" stroke="#a855f7" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.7"/>
+    <rect x="116" y="0" width="44" height="44" rx="2" fill="#16082a" stroke="#a855f7" stroke-width="1"/>
+    <text x="138" y="14" text-anchor="middle" font-family="Space Mono, monospace" font-size="6" fill="#a855f7">#4823</text>
+    <text x="138" y="25" text-anchor="middle" font-family="Space Mono, monospace" font-size="5.5" fill="#6b8aaa">Settle</text>
+    <text x="138" y="37" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b">~</text>
+    <line x1="162" y1="22" x2="172" y2="22" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+    <rect x="174" y="5" width="36" height="34" rx="2" fill="#0d1520" stroke="#344a66" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="192" y="27" text-anchor="middle" font-family="Space Mono, monospace" font-size="10" fill="#344a66">…</text>
+  </g>
+
+  <rect x="822" y="420" width="153" height="38" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="900" y="434" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">DID Registry</text>
+  <text x="900" y="448" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7">SMGW-ID ↔ DID</text>
+
+  <rect x="983" y="420" width="173" height="38" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="1069" y="434" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Herkunftsnachweis</text>
+  <text x="1069" y="448" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#22c55e">kWh · Zeit · SMGW-Sig</text>
+
+  <rect x="822" y="464" width="334" height="20" rx="1" fill="#080c10" stroke="#1e3050" stroke-width="1"/>
+  <text x="984" y="477" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#6b8aaa">Energy Token Contract (ERC-20-like · unveränderlich)</text>
+
+  <rect x="822" y="490" width="334" height="38" rx="2" fill="#100820" stroke="#a855f7" stroke-width="1" opacity="0.7"/>
+  <text x="984" y="506" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7" letter-spacing="1">UNVERÄNDERLICH · TRANSPARENT</text>
+  <text x="984" y="520" text-anchor="middle" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7" letter-spacing="1">OHNE INTERMEDIÄR · P2P</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- GENOSSENSCHAFT BKV (bottom full width) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="32" y="640" width="1136" height="64" rx="3" fill="#0d1520" stroke="#22c55e" stroke-width="1.2"/>
+  <rect x="32" y="640" width="1136" height="18" rx="3" fill="#22c55e" opacity="0.05"/>
+  <text x="600" y="652" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#22c55e" letter-spacing="2">ENERGIEGENOSSENSCHAFT (eG) — BILANZKREISVERANTWORTLICHER (BKV) — § 42c EnWG</text>
+  <line x1="42" y1="658" x2="1158" y2="658" stroke="#1e3050" stroke-width="1"/>
+  <text x="60" y="671" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">§42c EnWG Rahmen</text>
+  <text x="60" y="683" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Rechtsbasis P2P-Sharing</text>
+  <text x="240" y="671" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">Bilanzkreis-Anmeldung</text>
+  <text x="240" y="683" font-family="Space Mono, monospace" font-size="7" fill="#344a66">VNB · SMGW-ID-Basis</text>
+  <text x="420" y="671" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">EPEX Spot Settlement</text>
+  <text x="420" y="683" font-family="Space Mono, monospace" font-size="7" fill="#344a66">Viertelstunden-Intervall</text>
+  <text x="620" y="671" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa">Abrechnung je SMGW-ID</text>
+  <text x="620" y="683" font-family="Space Mono, monospace" font-size="7" fill="#344a66">kein Einzelasset-Tracking</text>
+  <circle cx="820" cy="670" r="5" fill="#00d4ff" opacity="0.5"/>
+  <circle cx="834" cy="670" r="5" fill="#22c55e" opacity="0.5"/>
+  <circle cx="848" cy="670" r="5" fill="#f59e0b" opacity="0.5"/>
+  <text x="860" y="674" font-family="Space Mono, monospace" font-size="7.5" fill="#344a66">Prosumer A · B · Mieter C · ···</text>
+  <text x="1060" y="674" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">MIT · Open Source</text>
+  <text x="1060" y="684" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#344a66">github.com/tec-hems</text>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- ARROWS -->
+  <!-- ══════════════════════════════════════════════════════ -->
+
+  <!-- Prosumer → SMGW (aggregated flex, not individual) -->
+  <line x1="381" y1="280" x2="463" y2="320" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrowCyan)" opacity="0.65">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.4s" repeatCount="indefinite"/>
+  </line>
+  <line x1="381" y1="350" x2="463" y2="380" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrowCyan)" opacity="0.55">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.8s" repeatCount="indefinite"/>
+  </line>
+  <line x1="381" y1="430" x2="463" y2="430" stroke="#00d4ff" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrowCyan)" opacity="0.4">
+    <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="2.2s" repeatCount="indefinite"/>
+  </line>
+  <text x="415" y="295" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff" opacity="0.7" transform="rotate(-18 415 295)">Messwerte</text>
+  <text x="415" y="345" font-family="Space Mono, monospace" font-size="7" fill="#00d4ff" opacity="0.6" transform="rotate(-10 415 345)">Flex-Signal</text>
+
+  <!-- SMGW → VNB (bidirectional) -->
+  <line x1="765" y1="290" x2="810" y2="225" stroke="#f59e0b" stroke-width="1.3" stroke-dasharray="7,4" marker-end="url(#arrowAmber)" opacity="0.6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-22" dur="2s" repeatCount="indefinite"/>
+  </line>
+  <line x1="810" y1="240" x2="765" y2="310" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowAmber)" opacity="0.35">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="3s" repeatCount="indefinite"/>
+  </line>
+  <text x="774" y="248" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b" opacity="0.8" transform="rotate(-38 774 248)">CLS-Messwerte</text>
+  <text x="768" y="286" font-family="Space Mono, monospace" font-size="7" fill="#f59e0b" opacity="0.5" transform="rotate(-38 768 286)">§14a Signal</text>
+
+  <!-- SMGW → peaq -->
+  <line x1="765" y1="440" x2="810" y2="430" stroke="#a855f7" stroke-width="1.8" stroke-dasharray="7,3" marker-end="url(#arrowPurple)" opacity="0.75">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.1s" repeatCount="indefinite"/>
+  </line>
+  <text x="775" y="420" font-family="Space Mono, monospace" font-size="7.5" fill="#a855f7" opacity="0.85">DID-signierter Token-Commit</text>
+  <text x="775" y="432" font-family="Space Mono, monospace" font-size="7" fill="#6b8aaa" opacity="0.6">SMGW-ID · kWh · ts · Sig</text>
+
+  <!-- peaq → Genossenschaft -->
+  <line x1="984" y1="540" x2="984" y2="638" stroke="#22c55e" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#arrowGreen)" opacity="0.65">
+    <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.6s" repeatCount="indefinite"/>
+  </line>
+  <text x="992" y="592" font-family="Space Mono, monospace" font-size="7" fill="#22c55e" opacity="0.7">Settlement-Daten</text>
+
+  <!-- VNB → Genossenschaft -->
+  <line x1="900" y1="304" x2="820" y2="638" stroke="#344a66" stroke-width="0.8" stroke-dasharray="4,4" opacity="0.4"/>
+
+  <!-- SMGW → Genossenschaft (direct settlement) -->
+  <line x1="615" y1="666" x2="615" y2="640" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowGreen)" opacity="0.4">
+    <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="2s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- CERT FLOW CALLOUT (top right) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <rect x="812" y="552" width="344" height="80" rx="2" fill="#0a0514" stroke="#a855f7" stroke-width="1" opacity="0.85"/>
+  <text x="984" y="568" text-anchor="middle" font-family="Space Mono, monospace" font-size="8" fill="#a855f7" letter-spacing="1">SMGW-ZERTIFIKAT → DID-FLOW</text>
+  <line x1="822" y1="573" x2="1146" y2="573" stroke="#1e3050" stroke-width="1"/>
+  <text x="830" y="587" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">① SMGW misst · BSI-geeicht · 15min-Intervall</text>
+  <text x="830" y="599" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">② TLS-Zertifikat signiert Messdaten kryptografisch</text>
+  <text x="830" y="611" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">③ SMGW-ID wird peaq DID zugeordnet (on-chain)</text>
+  <text x="830" y="623" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">④ Token-Commit · ⑤ unveränderlicher Nachweis</text>
+
+  <!-- LEGEND -->
+  <rect x="32" y="716" width="770" height="56" rx="2" fill="#0d1520" stroke="#1e3050" stroke-width="1"/>
+  <text x="50" y="731" font-family="Space Mono, monospace" font-size="7" fill="#344a66" letter-spacing="2">LEGENDE</text>
+  <line x1="50" y1="736" x2="792" y2="736" stroke="#1e3050" stroke-width="1"/>
+  <line x1="50" y1="750" x2="80" y2="750" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="86" y="753" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Aggregierter Flex-Messwertfluss (SMGW)</text>
+  <line x1="50" y1="764" x2="80" y2="764" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="86" y="767" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Blockchain-Commit (DID-signiert · peaq)</text>
+  <line x1="280" y1="750" x2="310" y2="750" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="316" y="753" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">VNB-Kommunikation (CLS · §14a)</text>
+  <line x1="280" y1="764" x2="310" y2="764" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="316" y="767" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Settlement / Abrechnung (eG BKV)</text>
+  <line x1="530" y1="750" x2="560" y2="750" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="566" y="753" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#6b8aaa">Registrierung / Verwaltung</text>
+  <text x="566" y="767" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="#344a66">Keine Einzelassets sichtbar — nur SMGW-Gateway</text>
+
+  <text x="1168" y="808" text-anchor="end" font-family="Space Mono, monospace" font-size="8" fill="#1e3050" letter-spacing="1">THE ELECTRON CHAIN — Open Source MIT</text>
+</svg>
+    </div>
+  </div>
+</div>
+
+<!-- REGULATORIK -->
+<section id="regulatorik">
+  <div class="section-tag">02 — Rechtlicher Rahmen</div>
+  <h2>Regulatorik:<br>Was jetzt legal möglich ist.</h2>
+  <p style="color: var(--text-muted); max-width: 600px; margin-bottom: 0;">
+    Der deutsche Gesetzgeber hat mit dem EnWG-Novellierungspaket 2023/2024 die rechtliche Grundlage für lokales Energy Sharing geschaffen. TEC nutzt diesen Rahmen vollständig aus.
+  </p>
+
+  <div class="reg-grid">
+    <div class="reg-card">
+      <div class="reg-badge">§ 42c EnWG</div>
+      <h3>Gemeinschaftliche Gebäudeversorgung & Energy Sharing</h3>
+      <p>Ermöglicht die <strong>direkte Lieferung von Strom</strong> zwischen Prosumern innerhalb eines Netzgebiets ohne klassischen Lieferantenvertrag. Energiegemeinschaften können Strom intern verteilen — die Grundlage für TEC.</p>
+    </div>
+
+    <div class="reg-card">
+      <div class="reg-badge">Bilanzkreis</div>
+      <h3>Virtueller Bilanzkreis der Genossenschaft</h3>
+      <p>Die <strong>Energiegenossenschaft</strong> fungiert als Bilanzkreisverantwortlicher (BKV). Alle TEC-Teilnehmer buchen ihren Verbrauch und ihre Einspeisung in diesen gemeinsamen Bilanzkreis — die Blockchain macht das Matching transparent.</p>
+    </div>
+
+    <div class="reg-card">
+      <div class="reg-badge">iMSys / SMGW</div>
+      <h3>Smart Meter Gateway Integration</h3>
+      <p>Ab 2025 rollout der <strong>intelligenten Messsysteme</strong>: TEC kann Viertelstundenwerte direkt vom SMGW beziehen — keine manuelle Ablesung, automatisches Settlement auf Basis geeichter Messwerte.</p>
+    </div>
+
+    <div class="reg-card">
+      <div class="reg-badge">§ 14a EnWG</div>
+      <h3>Steuerbare Verbrauchseinrichtungen</h3>
+      <p>Wärmepumpen, Wallboxen und Heimspeicher als <strong>steuerbare Lasten</strong>: TEC nutzt §14a-Signale des Netzbetreibers, um bei Netzengpässen intelligent zu drosseln und trotzdem maximal Eigenverbrauch zu optimieren.</p>
+    </div>
+
+    <div class="reg-card">
+      <div class="reg-badge">EEG 2023</div>
+      <h3>Mieterstrom & Gemeinschaftlicher Eigenverbrauch</h3>
+      <p>Der <strong>Mieterstrom-Zuschlag</strong> und die Regelungen zum gemeinschaftlichen Eigenverbrauch bilden die wirtschaftliche Basis: TEC macht Eigenverbrauchsoptimierung für ganze Quartiere skalierbar.</p>
+    </div>
+
+    <div class="reg-card">
+      <div class="reg-badge">peaq DID</div>
+      <h3>Dezentrale Identitäten für Geräte</h3>
+      <p>Jede PV-Anlage, jeder Speicher, jede Wallbox erhält eine <strong>dezentrale digitale Identität (DID)</strong> auf dem peaq-Netzwerk. Manipulationssichere Herkunftsnachweise für jeden gehandelten Kilowattstunde.</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
+    <div>
+      <h3 style="margin-bottom: 32px; color: var(--text-muted);">Rechtliche Entwicklung</h3>
+      <div class="reg-timeline">
+        <div class="tl-item">
+          <div class="tl-year">2023</div>
+          <div class="tl-title">EnWG-Novelle & §42c Grundlage</div>
+          <div class="tl-body">EU-Richtlinie zur Förderung erneuerbarer Energien (RED II/III) in deutsches Recht umgesetzt. Energy Sharing rechtlich ermöglicht.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2024</div>
+          <div class="tl-title">BNetzA Konsultationen & BEMD</div>
+          <div class="tl-body">Bundesnetzagentur erarbeitet technische Anforderungen. BEMD-Arbeitsgruppen definieren MaKo-Prozesse für Energy-Sharing-Gemeinschaften.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2025</div>
+          <div class="tl-title">SMGW-Rollout & iMSys Pflicht</div>
+          <div class="tl-body">Verpflichtender SMGW-Einbau ab 6.000 kWh/Jahr — die technische Infrastruktur für geeichtes P2P-Settlement entsteht bundesweit.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2026+</div>
+          <div class="tl-title">Skalierung Energiegemeinschaften</div>
+          <div class="tl-body">Mit TEC: jede Genossenschaft kann ihren eigenen Bilanzkreis betreiben, automatisiert über Home Assistant HEMS und peaq Network.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom: 24px; color: var(--text-muted);">Wichtige Hinweise</h3>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); padding: 28px;">
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">⚠️ <strong style="color: var(--amber);">Rechtlicher Hinweis:</strong> Die Umsetzung von Energy Sharing erfordert die Gründung oder den Beitritt zu einer anerkannten Energiegemeinschaft (Genossenschaft o.ä.) sowie die Anmeldung beim zuständigen Netzbetreiber.</p>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">TEC ist ein technisches Open-Source-Werkzeug. Die rechtliche Einbettung in den §42c-Rahmen obliegt der jeweiligen Gemeinschaft und deren Rechtsberatung.</p>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">Die Blockchain-Transaktionen auf peaq ersetzen <strong style="color: var(--text);">keine geeichten Messeinrichtungen</strong> für die offizielle Abrechnung — sie dienen der Transparenz und dem internen Settlement.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MITMACHEN -->
+<div id="mitmachen" style="background: var(--bg2);">
+<div id="mitmachen-inner">
+  <div class="section-tag">03 — Mitmachen</div>
+  <h2>Drei Schritte zur<br>eigenen Electron Chain.</h2>
+  <p style="color: var(--text-muted); max-width: 580px; margin-bottom: 0;">
+    Du brauchst kein Blockchain-Vorwissen. Wenn Home Assistant läuft, bist du in 30 Minuten dabei.
+  </p>
+
+  <div class="steps-grid">
+
+    <div class="step-card">
+      <div class="step-glow"></div>
+      <span class="step-num">01</span>
+      <h3>Energiegenossenschaft beitreten</h3>
+      <p>Die rechtliche Grundlage ist eine <strong>Energiegenossenschaft</strong> oder ein Bürgerenergieverein in deiner Nähe. Über diese läuft der §42c-konforme Bilanzkreis.</p>
+      <ul class="step-list">
+        <li>Suche eine lokale Energiegenossenschaft (z.B. heutestadtmorgen eG, BürgerEnergie Berlin)</li>
+        <li>Alternativ: Gründe mit Nachbarn eine neue eG (mind. 3 Personen, ~500€ Startkapital)</li>
+        <li>Anmeldung der Gemeinschaft beim Verteilnetzbetreiber</li>
+        <li>Eintrag in das Marktstammdatenregister (MaStR)</li>
+      </ul>
+    </div>
+
+    <div class="step-card">
+      <div class="step-glow" style="background: radial-gradient(circle, rgba(245,158,11,0.08), transparent 70%);"></div>
+      <span class="step-num" style="color: var(--amber-dim);">02</span>
+      <h3>Home Assistant als HEMS aufsetzen</h3>
+      <p>Home Assistant wird dein <strong>lokales Energiemanagementsystem</strong>. TEC läuft als Add-on direkt auf deiner HA-Instanz.</p>
+      <ul class="step-list">
+        <li>Home Assistant OS auf Raspberry Pi 4/5 oder NUC installieren</li>
+        <li>PV-Wechselrichter integrieren (SMA, Fronius, Huawei, Kostal via Modbus/API)</li>
+        <li>Batteriespeicher einbinden (Anker Solix, BYD, Sonnen, E3/DC)</li>
+        <li>Stromzähler/Smart Meter anbinden (Shelly EM, Tibber Pulse, SMGW)</li>
+        <li>TEC Addon aus dem Repository installieren</li>
+      </ul>
+      <div class="code-block" style="margin-top: 20px; font-size: 0.72rem;">
+<span class="c"># In Home Assistant:</span>
+<span class="k">Settings</span> → Add-ons → Add-on Store
+→ ⊕ Custom Repository:
+<span class="s">https://github.com/[yourrepo]/tec-hems</span>
+→ Install <span class="k">The Electron Chain</span>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-glow" style="background: radial-gradient(circle, rgba(34,197,94,0.08), transparent 70%);"></div>
+      <span class="step-num" style="color: #166534;">03</span>
+      <h3>peaq Wallet einrichten & handeln</h3>
+      <p>Jede Anlage bekommt eine <strong>digitale Identität auf der peaq-Blockchain</strong>. Der Handel läuft automatisch — du siehst alles im Dashboard.</p>
+      <ul class="step-list">
+        <li>peaq Wallet erstellen (polkadot.js oder Talisman)</li>
+        <li>DID für deine Anlage im TEC Addon registrieren</li>
+        <li>Genossenschaft als Smart Contract hinterlegen</li>
+        <li>Handelsstrategie konfigurieren (EPEX Spot-basiert oder Festpreis)</li>
+        <li>Dashboard: Echtzeit-Flows, Abrechnung, CO₂-Zertifikate</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Architecture -->
+  <div style="margin-top: 80px;">
+    <div class="section-tag" style="margin-bottom: 24px;">Technische Architektur</div>
+    <div class="arch-box">
+<span class="comment">┌─────────────── THE ELECTRON CHAIN — SYSTEM OVERVIEW ────────────────────┐</span>
+│                                                                          │
+│  <span class="highlight">[ PV / BESS / EV ]</span>  ←Modbus/API→  <span class="highlight">[ Home Assistant ]</span>                        │
+│        ↕                                       ↕                        │
+│  <span class="green">[ Smart Meter / SMGW ]</span>           <span class="highlight">[ TEC Add-on ]</span>                            │
+│                                       ↕         ↕                       │
+│                              <span class="amber">[ n8n Workflows ]</span>  <span class="highlight">[ EPEX Spot API ]</span>          │
+│                                       ↕                                  │
+│                              <span class="highlight">[ peaq Network ]</span>                              │
+│                            ┌──────────┴──────────┐                      │
+│                    <span class="amber">[ DID Registry ]</span>      <span class="green">[ Energy Token Contract ]</span>          │
+│                            └──────────┬──────────┘                      │
+│                                       ↕                                  │
+│               <span class="highlight">[ Genossenschaft BKV ]</span> ←→ <span class="green">[ Netzbetreiber VNB ]</span>              │
+│                                       ↕                                  │
+│                          <span class="highlight">[ §42c Settlement & Abrechnung ]</span>                  │
+│                                                                          │
+<span class="comment">└──────────────────────────────────────────────────────────────────────────┘</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- GITHUB CTA -->
+<section id="github" style="max-width: 100%; padding: 120px 32px;">
+  <div class="section-tag" style="justify-content: center;">04 — Open Source</div>
+  <h2 style="text-align: center;">Baue mit uns.<br><span style="color: var(--electron);">Fork. Contribute. Deploy.</span></h2>
+  <p style="color: var(--text-muted); max-width: 520px; margin: 16px auto 40px; text-align: center;">
+    The Electron Chain ist vollständig Open Source unter MIT-Lizenz. Ob Entwickler, Energieingenieur oder motivierter Heimautomatisierer — Pull Requests sind willkommen.
+  </p>
+  <div class="btn-group" style="justify-content: center;">
+    <a class="btn-primary" href="https://github.com" target="_blank">⌥ GitHub Repository</a>
+    <a class="btn-secondary" href="#mitmachen">Dokumentation lesen</a>
+  </div>
+
+  <div style="margin-top: 80px; display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); max-width: 900px; margin-left: auto; margin-right: auto;">
+    <div style="background: var(--bg); padding: 28px; text-align: center;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--electron); margin-bottom: 8px;">HA</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted);">Home Assistant<br>Add-on</div>
+    </div>
+    <div style="background: var(--bg); padding: 28px; text-align: center;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--amber); margin-bottom: 8px;">n8n</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted);">Workflow<br>Automation</div>
+    </div>
+    <div style="background: var(--bg); padding: 28px; text-align: center;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--green); margin-bottom: 8px;">peaq</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted);">Blockchain<br>DePIN</div>
+    </div>
+    <div style="background: var(--bg); padding: 28px; text-align: center;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--electron); margin-bottom: 8px;">MIT</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted);">Open Source<br>Lizenz</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>© 2025 The Electron Chain — Open Source, MIT License</div>
+  <div style="display: flex; gap: 24px;">
+    <a href="#">GitHub</a>
+    <a href="#">Dokumentation</a>
+    <a href="#">Impressum</a>
+    <a href="#">Datenschutz</a>
+  </div>
+  <div style="font-family: 'Space Mono', monospace; font-size: 0.62rem;">
+    built with ⚡ Home Assistant · peaq · §42c EnWG
+  </div>
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+// PARTICLE CANVAS — Electron flow visualization
+const canvas = document.getElementById('canvas-bg');
+const ctx = canvas.getContext('2d');
+
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = Math.random() * 1.5 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.life = 0;
+    this.maxLife = Math.random() * 300 + 150;
+    this.color = Math.random() > 0.7
+      ? `rgba(245,158,11,`
+      : Math.random() > 0.5
+        ? `rgba(34,197,94,`
+        : `rgba(0,212,255,`;
+  }
+  draw() {
+    const alpha = Math.sin((this.life / this.maxLife) * Math.PI) * 0.7;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.color + alpha + ')';
+    ctx.fill();
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    if (this.life >= this.maxLife) this.reset();
+  }
+}
+
+// Create particles
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+// Draw connecting lines between close particles
+function drawLines() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i+1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 100) {
+        const a = (1 - d/100) * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(0,212,255,${a})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  drawLines();
+  particles.forEach(p => p.draw());
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'none';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reg-card, .step-card, .chain-node, .tl-item').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
