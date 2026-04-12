@@ -6,6 +6,9 @@ echo " Peaq Energy Trading Hub v3.2.0"
 echo " Anker Solix + Zendure Hyper 2000 + Peaq"
 echo "================================================"
 
+# Default timezone (overridden by config.timezone at runtime)
+export TZ="${TZ:-Europe/Berlin}"
+
 # Ensure data directory exists
 mkdir -p /data
 

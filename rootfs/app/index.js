@@ -181,7 +181,8 @@ const KOELN_BEZIRKE = [
 // ===========================================================================
 class MaloNode {
   constructor({ id, maloId, meloId, name, lat, lon, stadtbezirk, address = '', haPrefix = null,
-                battery = {}, solar = {}, smgCert = null, pvConfig = null, prosumerType = 'prosumer' }) {
+                battery = {}, solar = {}, smgCert = null, pvConfig = null, prosumerType = 'prosumer',
+                isLocal = false, isPeer = false, isDemo = false, peerAddress = null, smgwId = null }) {
     this.id          = id;
     this.maloId      = maloId;
     this.meloId      = meloId;
@@ -192,6 +193,11 @@ class MaloNode {
     this.address     = address;
     this.haPrefix    = haPrefix;
     this.prosumerType = prosumerType;
+    this.isLocal     = isLocal;
+    this.isPeer      = isPeer;
+    this.isDemo      = isDemo;
+    this.peerAddress = peerAddress;
+    this.smgwId      = smgwId;
 
     this.smgCert = (smgCert instanceof SMGCertificate)
       ? smgCert
@@ -292,6 +298,8 @@ class MaloNode {
       stadtbezirk: this.stadtbezirk,
       address: this.address, did: this.did,
       prosumerType: this.prosumerType,
+      isLocal: this.isLocal, isPeer: this.isPeer, isDemo: this.isDemo,
+      peerAddress: this.peerAddress, smgwId: this.smgwId,
       smgCert: this.smgCert.toJSON(),
       battery:  { ...this.battery },
       solar:    { ...this.solar },
@@ -317,10 +325,12 @@ class MaloRegistry {
   }
 
   register(node) { this.nodes.set(node.id, node); return node; }
+  remove(id)     { return this.nodes.delete(id); }
   get(id)        { return this.nodes.get(id); }
   getAll()       { return [...this.nodes.values()]; }
-  getHA()        { return this.getAll().filter(n => n.haPrefix); }
-  getDemo()      { return this.getAll().filter(n => !n.haPrefix); }
+  getLocal()     { return this.getAll().filter(n => n.isLocal); }
+  getPeers()     { return this.getAll().filter(n => n.isPeer); }
+  getDemo()      { return this.getAll().filter(n => n.isDemo); }
 
   getByBezirk(bezirkName) {
     return this.getAll().filter(n => n.stadtbezirk === bezirkName);
@@ -336,19 +346,10 @@ class MaloRegistry {
     return 'DE0004622030000000' + num + '00';
   }
 
-  generateCologneNodes(count = 200) {
-    const battTypes = ['BYD HVS', 'Pylontech US5000', 'Sonnen eco 10', 'E3/DC S10', 'SENEC V3',
-                       'Solarwatt MyReserve', 'Anker Solix', 'Zendure Hyper', 'VARTA pulse neo',
-                       'Huawei LUNA2000', 'Tesla Powerwall', 'RCT Power Battery'];
-    const caps = [2400, 5000, 7500, 10000, 13500, 15000, 20000];
-    const streets = [
-      'Aachener Str', 'Venloer Str', 'Subbelrather Str', 'Neusser Str', 'Amsterdamer Str',
-      'Zülpicher Str', 'Luxemburger Str', 'Bonner Str', 'Siegburger Str', 'Deutzer Freiheit',
-      'Kalker Hauptstr', 'Frankfurter Str', 'Mülheimer Freiheit', 'Berliner Str', 'Dürener Str',
-      'Universitätsstr', 'Pohligstr', 'Sülzburgstr', 'Brühler Str', 'Rondorfer Hauptstr',
-      'Chorweiler Ringstr', 'Militärringstr', 'Innere Kanalstr', 'Merheimer Str', 'Longericher Str',
-      'Am Porzer Rheinufer', 'Gremberger Str', 'Poll-Vingster Str', 'Olpener Str', 'Thurner Str'
-    ];
+  generateDemoNodes(count = 20) {
+    const battTypes = ['BYD HVS', 'Pylontech US5000', 'Sonnen eco 10', 'E3/DC S10',
+                       'SENEC V3', 'Anker Solix', 'Zendure Hyper', 'Tesla Powerwall'];
+    const caps = [5000, 7500, 10000, 13500, 15000];
     const prosumerTypes = ['prosumer', 'prosumer', 'prosumer', 'consumer', 'producer'];
 
     for (let i = 0; i < count; i++) {
@@ -356,37 +357,28 @@ class MaloRegistry {
       const spread = 0.025;
       const capWh  = caps[Math.floor(Math.random() * caps.length)];
       const hasSolar = Math.random() > 0.15;
-      const peakW    = [1600, 2000, 3000, 4000, 5000, 7000, 10000][Math.floor(Math.random() * 7)];
-      const lat      = bezirk.lat + (Math.random() - 0.5) * spread * 2;
-      const lon      = bezirk.lon + (Math.random() - 0.5) * spread * 2;
-      const street   = streets[Math.floor(Math.random() * streets.length)];
-      const houseNr  = Math.floor(Math.random() * 200) + 1;
-      const maloId   = MaloRegistry.generateMaloId(i + 1);
-      const meloId   = MaloRegistry.generateMeloId(i + 1);
-      const pType    = prosumerTypes[Math.floor(Math.random() * prosumerTypes.length)];
+      const peakW  = [2000, 3000, 5000, 7000, 10000][Math.floor(Math.random() * 5)];
+      const lat    = bezirk.lat + (Math.random() - 0.5) * spread * 2;
+      const lon    = bezirk.lon + (Math.random() - 0.5) * spread * 2;
+      const maloId = MaloRegistry.generateMaloId(i + 1);
+      const meloId = MaloRegistry.generateMeloId(i + 1);
 
       this.register(new MaloNode({
-        id:          'malo_' + (i + 1),
-        maloId:      maloId,
-        meloId:      meloId,
-        name:        bezirk.name + ' MaLo-' + (i + 1),
+        id:          'demo_' + (i + 1),
+        maloId, meloId,
+        name:        bezirk.name + ' Demo-' + (i + 1),
         lat, lon,
         stadtbezirk: bezirk.name,
-        address:     street + ' ' + houseNr + ', ' + bezirk.plzPrefix + String(Math.floor(Math.random() * 100)).padStart(2, '0') + ' Köln',
-        prosumerType: pType,
+        address:     bezirk.name + ', ' + bezirk.plzPrefix + '00 Köln',
+        prosumerType: prosumerTypes[Math.floor(Math.random() * prosumerTypes.length)],
         smgCert:     meloId,
-        battery: {
-          soc:        Math.random() * 80 + 10,
-          capacityWh: capWh,
-          type:       battTypes[Math.floor(Math.random() * battTypes.length)]
-        },
-        solar: { hasSolar, powerW: 0, peakW },
-        pvConfig: hasSolar ? {
-          tilt:    15 + Math.random() * 30,
-          azimuth: 140 + Math.random() * 80,
-          peakWp:  peakW,
-          pr:      0.72 + Math.random() * 0.08
-        } : null
+        isDemo:      true,
+        battery:     { soc: Math.random() * 80 + 10, capacityWh: capWh,
+                       type: battTypes[Math.floor(Math.random() * battTypes.length)] },
+        solar:       { hasSolar, powerW: 0, peakW },
+        pvConfig:    hasSolar ? { tilt: 15 + Math.random() * 30,
+                                  azimuth: 140 + Math.random() * 80,
+                                  peakWp: peakW, pr: 0.72 + Math.random() * 0.08 } : null
       }));
     }
   }
@@ -394,7 +386,7 @@ class MaloRegistry {
   updateDemoStates() {
     const now = new Date();
     for (const node of this.nodes.values()) {
-      if (node.haPrefix) continue;
+      if (!node.isDemo) continue;
 
       if (node.solar.hasSolar) {
         if (node.pvSim) {
@@ -515,6 +507,72 @@ class EnergyChartsAPI {
   }
 
   invalidate() { this._cache = null; }
+}
+
+// ===========================================================================
+// SmgwClient — BSI TR-03109 IF-1 HAN client (reads meter values from a
+// Smart Meter Gateway reachable inside the Home Area Network).
+// Supports https (REST-style polling) as a pragmatic first-pass transport.
+// Real COSEM/DLMS negotiation is handled externally (e.g. by an HA add-on
+// that exposes the SMGw as HA sensors) — this client is the direct path
+// for setups where the SMGw itself offers an HTTP(S) endpoint.
+// ===========================================================================
+class SmgwClient {
+  constructor({ host, port = 443, protocol = 'https', username = '', password = '' }) {
+    this.host     = host;
+    this.port     = port;
+    this.protocol = protocol;
+    this.username = username;
+    this.password = password;
+    this.lastRead = null;
+    this.lastError = null;
+  }
+
+  get baseUrl() {
+    return this.protocol + '://' + this.host + ':' + this.port;
+  }
+
+  _authHeader() {
+    if (!this.username) return {};
+    const token = Buffer.from(this.username + ':' + this.password).toString('base64');
+    return { Authorization: 'Basic ' + token };
+  }
+
+  async readMeter(obisEndpoint = '/smgw/meter/current') {
+    if (!this.host) return null;
+    try {
+      const { default: fetch } = await import('node-fetch');
+      const res = await fetch(this.baseUrl + obisEndpoint, {
+        headers: { 'Accept': 'application/json', ...this._authHeader() },
+        signal:  AbortSignal.timeout(5000)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      this.lastRead = {
+        timestamp: new Date().toISOString(),
+        activePowerW:   data.activePowerW   ?? data.power    ?? null,
+        importKwh:      data.importKwh      ?? data.import   ?? null,
+        exportKwh:      data.exportKwh      ?? data.export   ?? null,
+        raw: data
+      };
+      this.lastError = null;
+      return this.lastRead;
+    } catch (err) {
+      this.lastError = err.message.slice(0, 120);
+      return null;
+    }
+  }
+
+  toJSON() {
+    return {
+      host:      this.host,
+      port:      this.port,
+      protocol:  this.protocol,
+      configured: !!this.host,
+      lastRead:  this.lastRead,
+      lastError: this.lastError
+    };
+  }
 }
 
 // ===========================================================================
@@ -1179,8 +1237,10 @@ class TheElectronChain {
     this.chain         = null;
 
     this.maloRegistry     = new MaloRegistry();
-    this.ankerNode        = null;
-    this.zendureNode      = null;
+    this.localNode        = null;
+    this.smgwClient       = null;
+    this.discoveredPeers  = new Map();  // address -> meta
+    this._discoveryTimer  = null;
     this.orderBook        = new OrderBook();
     this.p2pTrades        = [];
     this.activeEnergyFlow = null;
@@ -1230,6 +1290,7 @@ class TheElectronChain {
       machine_name:    process.env.MACHINE_NAME  || c.machine_name  || 'TheElectronChain',
       update_interval: parseInt(process.env.UPDATE_INTERVAL) || c.update_interval || 300,
       log_level:       process.env.LOG_LEVEL     || c.log_level     || 'info',
+      timezone:        process.env.TZ            || c.timezone      || 'Europe/Berlin',
 
       enable_trading:     (process.env.ENABLE_TRADING === 'true') || c.enable_trading !== false,
       min_sell_price:     parseFloat(process.env.MIN_SELL_PRICE)  || c.min_sell_price  || 0.25,
@@ -1238,7 +1299,6 @@ class TheElectronChain {
       battery_reserve:    parseInt(process.env.BATTERY_RESERVE)   || c.battery_reserve || 20,
       max_feedin_power:   parseInt(process.env.MAX_FEEDIN_POWER)  || c.max_feedin_power || 800,
       p2p_trade_amount_wh: c.p2p_trade_amount_wh || 100,
-      malo_count:         c.malo_count || 200,
 
       agnes_enabled:         c.agnes_enabled !== false,
       community_flex_enabled: c.community_flex_enabled !== false,
@@ -1246,43 +1306,53 @@ class TheElectronChain {
       min_flex_bid_kw:       c.min_flex_bid_kw || 0.1,
       settlement_penalty_pct: c.settlement_penalty_pct || 10,
 
-      party1_name:           c.party1_name           || 'Gertrud Koch Str',
-      party1_lat:            c.party1_lat            || 50.9333,
-      party1_lon:            c.party1_lon            || 6.9500,
-      party1_malo_id:        c.party1_malo_id        || '50662350764',
-      party1_melo_id:        c.party1_melo_id        || 'DE000462203000000000000000000001',
-      party1_smg_cert:       c.party1_smg_cert       || null,
-      anker_battery_sensor:  c.anker_battery_sensor  || 'sensor.solarbank_2_e1600_battery_charge',
-      anker_power_sensor:    c.anker_power_sensor    || 'sensor.solarbank_2_e1600_output_power',
-      anker_output_control:  c.anker_output_control  || 'number.solarbank_2_e1600_output_preset',
-      anker_ac_charging:     c.anker_ac_charging     || 'switch.solarbank_2_e1600_ac_notladeoption',
-      anker_device_id:       c.anker_device_id       || 'b8214a38bd446ccbf2837f3c71ff5309',
+      // Local node (single MaLo per HA instance)
+      node_name:       c.node_name       || 'My MaLo',
+      node_lat:        c.node_lat        ?? 50.9333,
+      node_lon:        c.node_lon        ?? 6.9500,
+      node_malo_id:    c.node_malo_id    || '',
+      node_melo_id:    c.node_melo_id    || '',
+      node_smgw_id:    c.node_smgw_id    || '',
+      node_address:    c.node_address    || '',
+      node_pv_tilt:    c.node_pv_tilt    ?? 30,
+      node_pv_azimuth: c.node_pv_azimuth ?? 180,
+      node_pv_peak_wp: c.node_pv_peak_wp ?? 2000,
 
-      party2_name:            c.party2_name            || 'Eilendorfer Str',
-      party2_lat:             c.party2_lat             || 50.7717,
-      party2_lon:             c.party2_lon             || 6.1244,
-      party2_malo_id:         c.party2_malo_id         || '50662350765',
-      party2_melo_id:         c.party2_melo_id         || 'DE000462203000000000000000000002',
-      party2_smg_cert:        c.party2_smg_cert        || null,
-      zendure_battery_sensor: c.zendure_battery_sensor || 'sensor.hyper_2000_electric_level',
-      zendure_power_sensor:   c.zendure_power_sensor   || 'sensor.hyper_2000_output_power',
-      zendure_output_control: c.zendure_output_control || 'number.hyper_2000_output_limit',
-      zendure_input_control:  c.zendure_input_control  || 'number.hyper_2000_input_limit',
-      zendure_ac_mode:        c.zendure_ac_mode        || 'select.hyper_2000_ac_mode',
+      // SMGw HAN (BSI TR-03109 IF-1)
+      smgw_enabled:  c.smgw_enabled === true,
+      smgw_host:     c.smgw_host     || '',
+      smgw_port:     c.smgw_port     || 443,
+      smgw_protocol: c.smgw_protocol || 'https',
+      smgw_username: c.smgw_username || '',
+      smgw_password: c.smgw_password || '',
+
+      // Optional device sensors
+      anker_battery_sensor:  c.anker_battery_sensor  || '',
+      anker_power_sensor:    c.anker_power_sensor    || '',
+      anker_output_control:  c.anker_output_control  || '',
+      anker_ac_charging:     c.anker_ac_charging     || '',
+      anker_device_id:       c.anker_device_id       || '',
+      zendure_battery_sensor: c.zendure_battery_sensor || '',
+      zendure_power_sensor:   c.zendure_power_sensor   || '',
+      zendure_output_control: c.zendure_output_control || '',
+      zendure_input_control:  c.zendure_input_control  || '',
+      zendure_ac_mode:        c.zendure_ac_mode        || '',
+
+      // Peer discovery
+      discovery_seeds:    c.discovery_seeds    || '',
+      discovery_interval: c.discovery_interval || 600,
+
+      // Demo nodes (Köln fleet)
+      demo_nodes_enabled: c.demo_nodes_enabled !== false,
+      demo_nodes_count:   c.demo_nodes_count   ?? 20,
 
       epex_sensor:      c.epex_sensor      || 'sensor.epex_spot_data_total_price',
-      machine_mnemonic: process.env.MACHINE_MNEMONIC || c.machine_mnemonic,
-
-      party1_pv_tilt:    c.party1_pv_tilt    ?? 30,
-      party1_pv_azimuth: c.party1_pv_azimuth ?? 180,
-      party1_pv_peak_wp: c.party1_pv_peak_wp ?? 1600,
-      party2_pv_tilt:    c.party2_pv_tilt    ?? 30,
-      party2_pv_azimuth: c.party2_pv_azimuth ?? 180,
-      party2_pv_peak_wp: c.party2_pv_peak_wp ?? 2000
+      machine_mnemonic: process.env.MACHINE_MNEMONIC || c.machine_mnemonic
     };
 
+    process.env.TZ = this.config.timezone;
     if (this.config.agnes_enabled) this.dynamicGridFee.enable();
-    this.log('info', 'Config: ' + this.config.machine_name + ' @ ' + this.config.network_type + ' | ' + this.config.malo_count + ' MaLos | AgNes=' + this.config.agnes_enabled);
+    this.log('info', 'Config: ' + this.config.machine_name + ' @ ' + this.config.network_type + ' | TZ=' + this.config.timezone + ' | AgNes=' + this.config.agnes_enabled);
     return true;
   }
 
@@ -1339,9 +1409,8 @@ class TheElectronChain {
     } catch {}
 
     this.did = await this.chain.createDID(this.config.machine_name, {
-      party1: this.config.party1_name,
-      party2: this.config.party2_name,
-      maloCount: this.config.malo_count,
+      node:     this.config.node_name,
+      maloId:   this.config.node_malo_id,
       platform: 'TheElectronChain_v4'
     });
 
@@ -1360,57 +1429,159 @@ class TheElectronChain {
   // MaLo Registry Initialization
   // -------------------------------------------------------------------------
   async initializeNodes() {
-    this.ankerNode = new MaloNode({
-      id:          'node_ha1',
-      maloId:      this.config.party1_malo_id,
-      meloId:      this.config.party1_melo_id,
-      name:        this.config.party1_name,
-      lat:         this.config.party1_lat,
-      lon:         this.config.party1_lon,
-      stadtbezirk: 'Innenstadt',
-      address:     this.config.party1_name + ', Köln',
-      haPrefix:    'anker',
-      battery:     { capacityWh: 1600, type: 'Anker Solix 1600 AC' },
-      solar:       { hasSolar: true, peakW: this.config.party1_pv_peak_wp },
-      smgCert:     this.config.party1_smg_cert || this.config.party1_melo_id,
+    // SMGw HAN client (optional)
+    if (this.config.smgw_enabled && this.config.smgw_host) {
+      this.smgwClient = new SmgwClient({
+        host:     this.config.smgw_host,
+        port:     this.config.smgw_port,
+        protocol: this.config.smgw_protocol,
+        username: this.config.smgw_username,
+        password: this.config.smgw_password
+      });
+      this.log('info', 'SMGw HAN: ' + this.smgwClient.baseUrl);
+    }
+
+    // Local MaLo node — exactly one per HA instance
+    const hasAnker   = !!this.config.anker_battery_sensor;
+    const hasZendure = !!this.config.zendure_battery_sensor;
+    const deviceTag  = hasAnker ? 'Anker Solix' : hasZendure ? 'Zendure Hyper' : 'PV-only';
+    const capacityWh = hasAnker ? 1600 : hasZendure ? 2000 : 5000;
+
+    this.localNode = new MaloNode({
+      id:          'local',
+      maloId:      this.config.node_malo_id,
+      meloId:      this.config.node_melo_id,
+      smgwId:      this.config.node_smgw_id,
+      name:        this.config.node_name,
+      lat:         this.config.node_lat,
+      lon:         this.config.node_lon,
+      stadtbezirk: 'Local',
+      address:     this.config.node_address || this.config.node_name,
+      haPrefix:    hasAnker ? 'anker' : hasZendure ? 'zendure' : null,
+      isLocal:     true,
+      battery:     { capacityWh, type: deviceTag },
+      solar:       { hasSolar: true, peakW: this.config.node_pv_peak_wp },
+      smgCert:     this.config.node_smgw_id || this.config.node_melo_id || this.config.node_malo_id,
       pvConfig: {
-        tilt:    this.config.party1_pv_tilt,
-        azimuth: this.config.party1_pv_azimuth,
-        peakWp:  this.config.party1_pv_peak_wp,
+        tilt:    this.config.node_pv_tilt,
+        azimuth: this.config.node_pv_azimuth,
+        peakWp:  this.config.node_pv_peak_wp,
         pr:      0.76
       }
     });
-    this.ankerNode.did = this.did;
-    this.maloRegistry.register(this.ankerNode);
+    this.localNode.did = this.did;
+    this.maloRegistry.register(this.localNode);
 
-    this.zendureNode = new MaloNode({
-      id:          'node_ha2',
-      maloId:      this.config.party2_malo_id,
-      meloId:      this.config.party2_melo_id,
-      name:        this.config.party2_name,
-      lat:         this.config.party2_lat,
-      lon:         this.config.party2_lon,
-      stadtbezirk: 'Ehrenfeld',
-      address:     this.config.party2_name + ', Köln',
-      haPrefix:    'zendure',
-      battery:     { capacityWh: 2000, type: 'Zendure Hyper 2000' },
-      solar:       { hasSolar: true, peakW: this.config.party2_pv_peak_wp },
-      smgCert:     this.config.party2_smg_cert || this.config.party2_melo_id,
-      pvConfig: {
-        tilt:    this.config.party2_pv_tilt,
-        azimuth: this.config.party2_pv_azimuth,
-        peakWp:  this.config.party2_pv_peak_wp,
-        pr:      0.76
-      }
-    });
-    this.zendureNode.did = 'did:peaq:smg_' + this.zendureNode.smgCert.fingerprint.slice(0, 32);
-    this.maloRegistry.register(this.zendureNode);
+    // Optional: populate Köln demo fleet for visualization / testing
+    if (this.config.demo_nodes_enabled && this.config.demo_nodes_count > 0) {
+      this.maloRegistry.generateDemoNodes(this.config.demo_nodes_count);
+      this.log('info', 'Demo fleet: ' + this.config.demo_nodes_count + ' Köln nodes generated');
+    }
 
-    this.maloRegistry.generateCologneNodes(this.config.malo_count);
     this.maloRegistry.refreshAllFlexSpaces();
     this.dynamicGridFee.generateSchedule(48);
 
-    this.log('info', 'MaloRegistry: ' + this.maloRegistry.getAll().length + ' MaLos (2 HA + ' + this.config.malo_count + ' Köln) across 9 Stadtbezirke');
+    this.log('info', 'MaloRegistry: 1 local (' + deviceTag + ') + '
+      + this.maloRegistry.getDemo().length + ' demo nodes');
+  }
+
+  // -------------------------------------------------------------------------
+  // Peer Discovery — publish local node metadata to peaq storage and
+  // read metadata from known seed addresses (1-hop gossip via knownPeers).
+  // -------------------------------------------------------------------------
+  async publishLocalNode() {
+    if (!this.chain || this.chain.demoMode || !this.localNode) return;
+    const meta = {
+      version:    1,
+      did:        this.did,
+      address:    this.machineWallet.getAddress(),
+      name:       this.localNode.name,
+      maloId:     this.localNode.maloId,
+      meloId:     this.localNode.meloId,
+      smgwId:     this.localNode.smgwId,
+      lat:        this.localNode.lat,
+      lon:        this.localNode.lon,
+      addressStr: this.localNode.address,
+      pvPeakW:    this.config.node_pv_peak_wp,
+      knownPeers: [...this.discoveredPeers.keys()],
+      publishedAt: new Date().toISOString()
+    };
+    const ok = await this.chain.storeData('tec_node_v1', meta);
+    if (ok) this.log('debug', 'Published local node metadata to peaq storage');
+  }
+
+  async discoverPeers() {
+    if (!this.chain) return;
+
+    const seeds = String(this.config.discovery_seeds || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+
+    if (seeds.length === 0) {
+      this.log('debug', 'Discovery: no seeds configured');
+      return;
+    }
+
+    const visited = new Set();
+    const queue = [...seeds];
+
+    while (queue.length > 0) {
+      const addr = queue.shift();
+      if (!addr || visited.has(addr.toLowerCase())) continue;
+      visited.add(addr.toLowerCase());
+
+      const meta = await this.chain.readData('tec_node_v1', addr);
+      if (!meta || !meta.address) continue;
+
+      this.discoveredPeers.set(meta.address.toLowerCase(), meta);
+
+      const existingId = 'peer_' + meta.address.slice(2, 10).toLowerCase();
+      let node = this.maloRegistry.get(existingId);
+      if (!node) {
+        node = new MaloNode({
+          id:          existingId,
+          maloId:      meta.maloId || '',
+          meloId:      meta.meloId || '',
+          smgwId:      meta.smgwId || '',
+          name:        meta.name || 'Peer',
+          lat:         meta.lat ?? 51.0,
+          lon:         meta.lon ?? 10.0,
+          stadtbezirk: 'Peer',
+          address:     meta.addressStr || '',
+          isPeer:      true,
+          peerAddress: meta.address,
+          battery:     { capacityWh: 5000, type: 'remote' },
+          solar:       { hasSolar: true, peakW: meta.pvPeakW || 2000 }
+        });
+        node.did = meta.did || null;
+        this.maloRegistry.register(node);
+      } else {
+        node.lat = meta.lat ?? node.lat;
+        node.lon = meta.lon ?? node.lon;
+        node.lastSeen = new Date();
+      }
+
+      // 1-hop gossip: enqueue peers-of-peers
+      if (Array.isArray(meta.knownPeers)) {
+        for (const kp of meta.knownPeers) {
+          if (!visited.has(String(kp).toLowerCase())) queue.push(kp);
+        }
+      }
+    }
+
+    this.log('info', 'Discovery: ' + this.discoveredPeers.size + ' peer nodes reachable');
+  }
+
+  startDiscoveryLoop() {
+    if (this._discoveryTimer) clearInterval(this._discoveryTimer);
+    const intervalMs = (this.config.discovery_interval || 600) * 1000;
+    this._discoveryTimer = setInterval(async () => {
+      try {
+        await this.publishLocalNode();
+        await this.discoverPeers();
+      } catch (err) {
+        this.log('debug', 'Discovery loop: ' + err.message.slice(0, 80));
+      }
+    }, intervalMs);
   }
 
   // -------------------------------------------------------------------------
@@ -1443,55 +1614,65 @@ class TheElectronChain {
   // Node State Updates
   // -------------------------------------------------------------------------
   async updateAllNodeStates() {
-    await this.updateAnkerNode();
-    await this.updateZendureNode();
+    await this.updateLocalNode();
     this.maloRegistry.updateDemoStates();
   }
 
-  async updateAnkerNode() {
-    const node = this.ankerNode;
+  async updateLocalNode() {
+    const node = this.localNode;
     if (!node) return;
-    try {
-      const bat = await this.getEntityState(this.config.anker_battery_sensor);
-      if (bat) node.battery.soc = parseFloat(bat.state) || 0;
-      const pwr = await this.getEntityState(this.config.anker_power_sensor);
-      if (pwr) {
-        node.battery.powerW     = parseFloat(pwr.state) || 0;
-        node.battery.discharging = node.battery.powerW > 0;
-        node.battery.charging    = node.battery.powerW < 0;
-      }
-      const ac = await this.getEntityState(this.config.anker_ac_charging);
-      if (ac) node.battery.acCharging = ac.state === 'on';
-      node.battery.lastUpdate = new Date();
-      node.lastSeen = new Date();
-      node.online   = true;
-    } catch {
-      node.battery.soc    = 45 + Math.random() * 35;
-      node.battery.powerW = (Math.random() - 0.5) * 600;
-      node.battery.lastUpdate = new Date();
-    }
-  }
 
-  async updateZendureNode() {
-    const node = this.zendureNode;
-    if (!node) return;
-    try {
-      const bat = await this.getEntityState(this.config.zendure_battery_sensor);
-      if (bat) node.battery.soc = parseFloat(bat.state) || 0;
-      const pwr = await this.getEntityState(this.config.zendure_power_sensor);
-      if (pwr) {
-        node.battery.powerW     = parseFloat(pwr.state) || 0;
-        node.battery.discharging = node.battery.powerW > 0;
-        node.battery.charging    = node.battery.powerW < 0;
+    // SMGw HAN — highest-trust source if configured
+    if (this.smgwClient) {
+      const reading = await this.smgwClient.readMeter();
+      if (reading && reading.activePowerW !== null) {
+        node.battery.powerW = reading.activePowerW;
+        node.lastSeen = new Date();
+        node.online   = true;
       }
-      node.battery.lastUpdate = new Date();
-      node.lastSeen = new Date();
-      node.online   = true;
-    } catch {
-      node.battery.soc    = 55 + Math.random() * 30;
-      node.battery.powerW = (Math.random() - 0.5) * 800;
-      node.battery.lastUpdate = new Date();
     }
+
+    // Anker Solix sensors (via HA)
+    if (this.config.anker_battery_sensor) {
+      try {
+        const bat = await this.getEntityState(this.config.anker_battery_sensor);
+        if (bat) node.battery.soc = parseFloat(bat.state) || node.battery.soc;
+        const pwr = await this.getEntityState(this.config.anker_power_sensor);
+        if (pwr) {
+          node.battery.powerW     = parseFloat(pwr.state) || 0;
+          node.battery.discharging = node.battery.powerW > 0;
+          node.battery.charging    = node.battery.powerW < 0;
+        }
+        if (this.config.anker_ac_charging) {
+          const ac = await this.getEntityState(this.config.anker_ac_charging);
+          if (ac) node.battery.acCharging = ac.state === 'on';
+        }
+        node.online = true;
+      } catch { /* fall through */ }
+    }
+
+    // Zendure Hyper sensors (via HA)
+    if (this.config.zendure_battery_sensor) {
+      try {
+        const bat = await this.getEntityState(this.config.zendure_battery_sensor);
+        if (bat) node.battery.soc = parseFloat(bat.state) || node.battery.soc;
+        const pwr = await this.getEntityState(this.config.zendure_power_sensor);
+        if (pwr) {
+          node.battery.powerW     = parseFloat(pwr.state) || 0;
+          node.battery.discharging = node.battery.powerW > 0;
+          node.battery.charging    = node.battery.powerW < 0;
+        }
+        node.online = true;
+      } catch { /* fall through */ }
+    }
+
+    // PV-only fallback: synth SoC/power from PVSim
+    if (!this.config.anker_battery_sensor && !this.config.zendure_battery_sensor && !this.smgwClient) {
+      if (node.pvSim) node.solar.powerW = Math.round(node.pvSim.currentPower(new Date()));
+    }
+
+    node.battery.lastUpdate = new Date();
+    node.lastSeen = new Date();
   }
 
   // -------------------------------------------------------------------------
@@ -1847,7 +2028,7 @@ class TheElectronChain {
   async makeTradingDecision() {
     if (!this.config.enable_trading) { this.currentMode = 'DISABLED'; return; }
     const price   = this.currentPrice;
-    const battery = this.ankerNode?.battery.soc ?? 0;
+    const battery = this.localNode?.battery.soc ?? 0;
     const reserve = this.config.battery_reserve;
     let decision = 'HOLD';
     if (price >= this.config.min_sell_price && battery > reserve) decision = 'SELL';
@@ -1882,10 +2063,11 @@ class TheElectronChain {
       currentPrice: this.currentPrice,
       earnings:     this.earnings,
       gridFee:      this.dynamicGridFee.getCurrentFee(),
-      ankerSoc:     this.ankerNode?.battery.soc,
-      zendureSoc:   this.zendureNode?.battery.soc,
-      ankerPower:   this.ankerNode?.battery.powerW,
-      zendurePower: this.zendureNode?.battery.powerW,
+      localSoc:     this.localNode?.battery.soc,
+      localPower:   this.localNode?.battery.powerW,
+      localSolarW:  this.localNode?.solar.powerW,
+      localName:    this.localNode?.name,
+      peerCount:    this.discoveredPeers.size,
       activeEnergyFlow: this.activeEnergyFlow,
       orderSummary: this.orderBook.summary(),
       maloSummary:  ns,
@@ -2064,14 +2246,28 @@ class TheElectronChain {
   getStateSnapshot() {
     return {
       platform:     'TheElectronChain',
-      version:      '4.0.0',
+      version:      '4.1.0',
       connected:    this.chain?.connected,
       demoMode:     this.chain?.demoMode,
       wallet:       this.machineWallet?.getAddress(),
       did:          this.did,
       network:      this.config?.network_type,
-      ankerSolix:   this.ankerNode   ? { batteryLevel: this.ankerNode.battery.soc,   power: this.ankerNode.battery.powerW }   : null,
-      zendureHyper: this.zendureNode ? { batteryLevel: this.zendureNode.battery.soc, power: this.zendureNode.battery.powerW } : null,
+      localNode:    this.localNode ? {
+        name:         this.localNode.name,
+        maloId:       this.localNode.maloId,
+        meloId:       this.localNode.meloId,
+        smgwId:       this.localNode.smgwId,
+        address:      this.localNode.address,
+        lat:          this.localNode.lat,
+        lon:          this.localNode.lon,
+        batteryLevel: this.localNode.battery.soc,
+        batteryPower: this.localNode.battery.powerW,
+        solarW:       this.localNode.solar.powerW,
+        flexKw:       this.localNode.availableFlexKw,
+        online:       this.localNode.online
+      } : null,
+      smgw:         this.smgwClient?.toJSON() || null,
+      peers:        [...this.discoveredPeers.values()],
       currentPrice: this.currentPrice,
       gridFee:      this.dynamicGridFee.getCurrentFee(),
       currentMode:  this.currentMode,
@@ -2092,7 +2288,6 @@ class TheElectronChain {
         max_buy_price:   this.config?.max_buy_price,
         battery_reserve: this.config?.battery_reserve,
         agnes_enabled:   this.config?.agnes_enabled,
-        malo_count:      this.config?.malo_count,
         clearing_mode:   this.config?.clearing_mode
       }
     };
@@ -2213,8 +2408,8 @@ class TheElectronChain {
     const ns   = this.maloRegistry.summary();
     const bs   = this.maloRegistry.getBezirkSummary();
     const ob   = this.orderBook.summary();
-    const anker   = this.ankerNode;
-    const zendure = this.zendureNode;
+    const local = this.localNode;
+    const peers = this.maloRegistry.getPeers();
     const allNodes = this.maloRegistry.getAll();
 
     const mc = { SELL: 'var(--red)', BUY: 'var(--grn)', HOLD: 'var(--yel)', DISABLED: 'var(--t2)' }[this.currentMode] || 'var(--t2)';
@@ -2227,11 +2422,22 @@ class TheElectronChain {
     const lastClearing = this.clearingMatcher.getHistory(1)[0];
     const stlSummary = this.settlementEngine?.getSummary() || {};
 
-    // Anker/Zendure values
-    const ankerSocN = anker?.battery.soc ?? 0;
-    const ankerPwr  = anker?.battery.powerW ?? 0;
-    const zenSocN   = zendure?.battery.soc ?? 0;
-    const zenPwr    = zendure?.battery.powerW ?? 0;
+    // Local node values
+    const localSocN  = local?.battery.soc ?? 0;
+    const localPwr   = local?.battery.powerW ?? 0;
+    const localSolar = local?.solar.powerW ?? 0;
+    const localFlex  = local?.availableFlexKw ?? 0;
+    const localType  = local?.battery.type || 'PV-only';
+    const smgwInfo   = this.smgwClient
+      ? (this.smgwClient.host + ':' + this.smgwClient.port + (this.smgwClient.lastError ? ' (err)' : ' (ok)'))
+      : 'not configured';
+
+    const peerListHTML = peers.length === 0
+      ? 'Keine peaq-Peers entdeckt. Seeds in discovery_seeds konfigurieren.'
+      : peers.map(function(p) {
+          return '&bull; ' + (p.name || '?') + ' &middot; ' + (p.maloId || '?')
+               + ' &middot; SoC ' + p.battery.soc.toFixed(0) + '%';
+        }).join('<br>');
 
     // Bezirk cards
     const bezirkCards = KOELN_BEZIRKE.map(function(b) {
@@ -2258,7 +2464,7 @@ class TheElectronChain {
       maloId: n.maloId, bezirk: n.stadtbezirk,
       soc: +n.battery.soc.toFixed(1), solarW: Math.round(n.solar.powerW),
       flex: n.availableFlexKw, canOffer: n.canOffer, needsDemand: n.needsDemand,
-      isHA: !!n.haPrefix
+      isLocal: !!n.isLocal, isPeer: !!n.isPeer, isDemo: !!n.isDemo
     })));
 
     const bezirkeJson = JSON.stringify(KOELN_BEZIRKE);
@@ -2280,7 +2486,8 @@ class TheElectronChain {
       + 'function initMap() {\n'
       + '  var el = document.getElementById("map");\n'
       + '  if (!el) return;\n'
-      + '  var map = L.map("map", { zoomControl: true, attributionControl: false, preferCanvas: true }).setView([50.94, 6.96], 12);\n'
+      + '  var center = NODES.find(function(n) { return n.isLocal; }) || { lat: 50.94, lon: 6.96 };\n'
+      + '  var map = L.map("map", { zoomControl: true, attributionControl: false, preferCanvas: true }).setView([center.lat, center.lon], 11);\n'
       + '  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);\n'
       + '  var rend = L.canvas({ padding: 0.5 });\n'
       + '  BEZIRKE.forEach(function(b) {\n'
@@ -2288,12 +2495,13 @@ class TheElectronChain {
       + '    L.marker([b.lat, b.lon], { icon: L.divIcon({ className: "", html: "<div style=\\"font-size:9px;color:" + b.color + ";font-weight:700;white-space:nowrap\\">" + b.name + "</div>", iconSize: [80, 14], iconAnchor: [40, 7] }) }).addTo(map);\n'
       + '  });\n'
       + '  NODES.forEach(function(n) {\n'
-      + '    var isHA = n.isHA;\n'
       + '    var bz = BEZIRKE.find(function(b) { return b.name === n.bezirk; });\n'
-      + '    var color = isHA ? "#06b6d4" : (bz ? bz.color : "#3b82f6");\n'
-      + '    var radius = isHA ? 8 : 3;\n'
-      + '    var marker = L.circleMarker([n.lat, n.lon], { renderer: rend, radius: radius, fillColor: color, color: isHA ? "#fff" : color, weight: isHA ? 2 : 0.5, fillOpacity: isHA ? 1 : 0.7 });\n'
-      + '    var tip = "<b>" + n.name + "</b><br>MaLo: " + n.maloId + "<br>Bezirk: " + n.bezirk\n'
+      + '    var color = n.isLocal ? "#06b6d4" : n.isPeer ? "#a855f7" : (bz ? bz.color : "#3b82f6");\n'
+      + '    var radius = n.isLocal ? 10 : n.isPeer ? 7 : 3;\n'
+      + '    var weight = n.isLocal ? 2 : n.isPeer ? 1.5 : 0.5;\n'
+      + '    var marker = L.circleMarker([n.lat, n.lon], { renderer: rend, radius: radius, fillColor: color, color: (n.isLocal || n.isPeer) ? "#fff" : color, weight: weight, fillOpacity: (n.isLocal || n.isPeer) ? 1 : 0.7 });\n'
+      + '    var kind = n.isLocal ? "LOCAL" : n.isPeer ? "PEER" : "DEMO";\n'
+      + '    var tip = "<b>[" + kind + "] " + n.name + "</b><br>MaLo: " + (n.maloId || "-")\n'
       + '      + "<br>SoC: " + n.soc.toFixed(0) + "% | Flex: " + n.flex.toFixed(1) + " kW"\n'
       + '      + (n.solarW > 0 ? "<br>PV: " + n.solarW + " W" : "");\n'
       + '    marker.bindTooltip(tip, { direction: "top", offset: [0, -radius] });\n'
@@ -2316,13 +2524,15 @@ class TheElectronChain {
       + '        if (d.currentPrice !== undefined) document.getElementById("price").textContent = (d.currentPrice * 100).toFixed(1);\n'
       + '        if (d.earnings !== undefined) document.getElementById("earnings").textContent = d.earnings.toFixed(2);\n'
       + '        if (d.gridFee !== undefined) document.getElementById("grid-fee").textContent = (d.gridFee * 100).toFixed(1);\n'
-      + '        if (d.ankerSoc !== undefined) {\n'
-      + '          document.getElementById("anker-soc").textContent = d.ankerSoc.toFixed(0) + "%";\n'
-      + '          document.getElementById("anker-bar").style.width = d.ankerSoc + "%";\n'
+      + '        if (d.localSoc !== undefined && d.localSoc !== null) {\n'
+      + '          var el = document.getElementById("local-soc"); if (el) el.textContent = d.localSoc.toFixed(0) + "%";\n'
+      + '          var bar = document.getElementById("local-bar"); if (bar) bar.style.width = d.localSoc + "%";\n'
       + '        }\n'
-      + '        if (d.zendureSoc !== undefined) {\n'
-      + '          document.getElementById("zen-soc").textContent = d.zendureSoc.toFixed(0) + "%";\n'
-      + '          document.getElementById("zen-bar").style.width = d.zendureSoc + "%";\n'
+      + '        if (d.localPower !== undefined && d.localPower !== null) {\n'
+      + '          var pw = document.getElementById("local-pwr"); if (pw) pw.textContent = (d.localPower > 0 ? "+" : "") + d.localPower.toFixed(0) + " W";\n'
+      + '        }\n'
+      + '        if (d.peerCount !== undefined) {\n'
+      + '          var pc = document.getElementById("peer-count"); if (pc) pc.textContent = d.peerCount;\n'
       + '        }\n'
       + '        if (d.maloSummary) {\n'
       + '          document.getElementById("malo-count").textContent = d.maloSummary.total;\n'
@@ -2353,32 +2563,37 @@ class TheElectronChain {
 + '      <div style="margin-top:2px;font-size:.6rem;color:var(--t2)">' + (this.config.agnes_enabled ? 'AgNes dynamisch' : 'Flat-Tarif') + '</div>\n'
 + '    </div>\n'
 + '    <div class="card c6">\n'
-+ '      <div class="ctitle">HA Nodes</div>\n'
++ '      <div class="ctitle">Local Node &middot; ' + this._esc(local?.name || '-') + '</div>\n'
 + '      <div class="bat-row">\n'
 + '        <div class="bat-card">\n'
-+ '          <div class="bat-name">' + this.config.party1_name + ' &middot; Anker Solix</div>\n'
-+ '          <div class="bat-soc" id="anker-soc" style="color:' + (ankerSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '">' + ankerSocN.toFixed(0) + '%</div>\n'
-+ '          <div class="bat-bar"><div id="anker-bar" class="bat-fill" style="width:' + ankerSocN + '%;background:' + (ankerSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '"></div></div>\n'
-+ '          <div class="bat-pwr">' + (ankerPwr > 0 ? '+' : '') + ankerPwr.toFixed(0) + ' W</div>\n'
-+ '          <div class="dim">MaLo: ' + this.config.party1_malo_id + '</div>\n'
++ '          <div class="bat-name">' + this._esc(localType) + '</div>\n'
++ '          <div class="bat-soc" id="local-soc" style="color:' + (localSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '">' + localSocN.toFixed(0) + '%</div>\n'
++ '          <div class="bat-bar"><div id="local-bar" class="bat-fill" style="width:' + localSocN + '%;background:' + (localSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '"></div></div>\n'
++ '          <div class="bat-pwr" id="local-pwr">' + (localPwr > 0 ? '+' : '') + localPwr.toFixed(0) + ' W</div>\n'
++ '          <div class="dim">MaLo: ' + this._esc(local?.maloId || '-') + '</div>\n'
++ '          <div class="dim">MeLo: ' + this._esc(local?.meloId || '-') + '</div>\n'
++ '          <div class="dim">SMGw: ' + this._esc(local?.smgwId || '-') + '</div>\n'
++ '          <div class="dim">' + this._esc(local?.address || '-') + '</div>\n'
 + '        </div>\n'
 + '        <div class="bat-card">\n'
-+ '          <div class="bat-name">' + this.config.party2_name + ' &middot; Zendure Hyper</div>\n'
-+ '          <div class="bat-soc" id="zen-soc" style="color:' + (zenSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '">' + zenSocN.toFixed(0) + '%</div>\n'
-+ '          <div class="bat-bar"><div id="zen-bar" class="bat-fill" style="width:' + zenSocN + '%;background:' + (zenSocN > 50 ? 'var(--grn)' : 'var(--yel)') + '"></div></div>\n'
-+ '          <div class="bat-pwr">' + (zenPwr > 0 ? '+' : '') + zenPwr.toFixed(0) + ' W</div>\n'
-+ '          <div class="dim">MaLo: ' + this.config.party2_malo_id + '</div>\n'
++ '          <div class="bat-name">PV / Flex</div>\n'
++ '          <div class="bat-soc" style="color:var(--ora)">' + localSolar.toFixed(0) + ' W</div>\n'
++ '          <div class="bat-pwr">Flex: ' + localFlex.toFixed(2) + ' kW</div>\n'
++ '          <div class="dim">SMGw HAN: ' + this._esc(smgwInfo) + '</div>\n'
++ '          <div class="dim">Peers: <span id="peer-count">' + peers.length + '</span></div>\n'
 + '        </div>\n'
 + '      </div>\n'
++ '      <div style="margin-top:6px;font-size:.6rem;color:var(--t2);max-height:70px;overflow:auto">' + peerListHTML + '</div>\n'
 + '    </div>\n'
 + '    <div class="card c8">\n'
-+ '      <div class="ctitle">Koeln MaLo Netzwerk &middot; <span id="malo-count">' + ns.total + '</span> Marktlokationen</div>\n'
++ '      <div class="ctitle">MaLo Netzwerk &middot; <span id="malo-count">' + ns.total + '</span> Nodes (1 local + ' + peers.length + ' peers + ' + this.maloRegistry.getDemo().length + ' demo)</div>\n'
 + '      <div id="map"></div>\n'
 + '      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:.58rem;color:var(--t2)">\n'
++ '        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border-radius:50%;background:var(--cyan);border:1px solid #fff"></span>Local</span>\n'
++ '        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border-radius:50%;background:#a855f7;border:1px solid #fff"></span>Peer (peaq)</span>\n'
 + KOELN_BEZIRKE.map(function(b) {
   return '<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:' + b.color + '"></span>' + b.name + '</span>';
 }).join('')
-+ '        <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:var(--cyan);border:1px solid #fff"></span>HA Node</span>\n'
 + '      </div>\n'
 + '    </div>\n'
 + '    <div class="card c4">\n'
@@ -2434,7 +2649,7 @@ class TheElectronChain {
 + '      </div>\n'
 + '    </div>\n'
 + '  </div>\n'
-+ '  <footer>TheElectronChain v4.0.0 &middot; ' + ns.total + ' MaLos &middot; 9 Bezirke &middot; Session: ' + this.sessionStart.toLocaleString('de-DE') + ' &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/settlement">Settlement</a> &middot; <a href="/api/status">API</a></footer>\n'
++ '  <footer>TheElectronChain v4.1.0 &middot; 1 local + ' + peers.length + ' peers + ' + this.maloRegistry.getDemo().length + ' demo &middot; Session: ' + this.sessionStart.toLocaleString('de-DE') + ' &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/settlement">Settlement</a> &middot; <a href="/api/status">API</a></footer>\n'
 + '</div>\n';
 
     return this._darkShell('/', 'Dashboard', body,
@@ -2673,8 +2888,8 @@ class TheElectronChain {
   async initialize() {
     console.log('');
     console.log('  ========================================');
-    console.log('  TheElectronChain v4.0.0');
-    console.log('  Cologne MaLo Aggregation Platform');
+    console.log('  TheElectronChain v4.1.0');
+    console.log('  Decentralized MaLo Node');
     console.log('  Local Flexibility Market + Peaq DePIN');
     console.log('  ========================================');
     console.log('');
@@ -2690,6 +2905,15 @@ class TheElectronChain {
     this.generateFlexBids();
 
     this.startWebUI();
+
+    // Peer discovery: publish local node metadata + read seeds (1-hop gossip)
+    try {
+      await this.publishLocalNode();
+      await this.discoverPeers();
+    } catch (err) {
+      this.log('debug', 'Initial discovery: ' + err.message.slice(0, 80));
+    }
+    this.startDiscoveryLoop();
 
     // Every 15 minutes: EPEX prices + PV forecast + flex bid generation
     cron.schedule('*/15 * * * *', async () => {
@@ -2719,11 +2943,14 @@ class TheElectronChain {
       await this.runSlotAuction();
     });
 
-    this.log('info', 'TheElectronChain v4.0.0 running — ' + this.maloRegistry.getAll().length + ' MaLos across 9 Kölner Stadtbezirke');
+    this.log('info', 'TheElectronChain v4.1.0 running — 1 local + '
+      + this.maloRegistry.getPeers().length + ' peers + '
+      + this.maloRegistry.getDemo().length + ' demo nodes');
   }
 
   async cleanup() {
     this.log('info', 'Shutting down...');
+    if (this._discoveryTimer) clearInterval(this._discoveryTimer);
     try {
       if (this.chain) await this.chain.storeData('session_end', {
         timestamp: new Date().toISOString(),

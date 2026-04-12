@@ -13,7 +13,8 @@
       "Bash(find C:/Users/PCUser/Documents/projects/ -name *.md)",
       "Bash(find C:/Users/PCUser/Documents/projects/energy_flexibility_data_model-main-efdm_v1.1/ -name *.md -o -name *.json)",
       "Bash(find C:/Users/PCUser/ -name *.md -o -name *.html -o -name *.txt)",
-      "Bash(node --check \"c:/Users/PCUser/Documents/projects/peaq-energy-trading/rootfs/app/index.js\")"
+      "Bash(node --check \"c:/Users/PCUser/Documents/projects/peaq-energy-trading/rootfs/app/index.js\")",
+      "Bash(node --check rootfs/app/index.js)"
     ]
   }
 }
