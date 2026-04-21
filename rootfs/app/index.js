@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // @ts-nocheck
 /**
- * TheElectronChain v4.0.0
+ * TheElectronChain v4.1.0
  *
  * Cologne MaLo Aggregation Platform — Local Flexibility Market
  * - 200+ MaLos across 9 Kölner Stadtbezirke
  * - MaLo-ID: 11-digit BDEW format | MELo-ID: 33-char DE prefix
- * - EFDM v1.1 (Fraunhofer/TU Darmstadt): FlexSpace, FLMP, FLMAP
- * - Uniform Price Auction (pay-as-cleared) per 15-min slot
+ * - Redispatch 3.0 Datenmodell (TransnetBW/E-Bridge): RDV, MOL, Abruf, Abrechnung
+ * - Pay-as-bid Merit-Order-Liste (MOL) per 15-min slot
  * - AgNes BNetzA: dynamic grid fees with 15-min granularity
  * - Peaq Blockchain: DID registry + on-chain settlement
  * - BSI TR-03109 SMGW certificate → DID identity
@@ -670,78 +670,156 @@ class PeaqChain {
 }
 
 // ===========================================================================
-// FlexBid — Flexibility bid for 15-min slot auction
+// FlexBid — Redispatch 3.0 Gebot (kurzfristiges Arbeitsangebot)
+// Datenmodell nach TransnetBW/E-Bridge "Redispatch 3.0: Zielmodell"
 // ===========================================================================
 class FlexBid {
   constructor({ maloId, meloId, did, slotStart, direction, powerKw, priceEurKwh,
-                source = 'battery', flexSpaceRef = null, priority = 5 }) {
-    this.bidId        = 'fb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                source = 'battery', flexSpaceRef = null, priority = 5,
+                poolId = null, clusterId = null, sensitivitaet = 1.0 }) {
+    this.gebotId      = 'gbt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    // Legacy alias
+    this.bidId        = this.gebotId;
+    this.gebotTyp     = 'kurzfristig';
     this.maloId       = maloId;
     this.meloId       = meloId;
     this.did          = did;
+    this.poolId       = poolId || ('pool_' + maloId);
+    this.clusterId    = clusterId;
+
+    // Fahrplan-Slot (Viertelstundenbasis)
     this.slotStart    = slotStart;
+    this.slotEnd      = new Date(new Date(slotStart).getTime() + 900_000).toISOString();
+
+    // RDV — Redispatch-Vermögen
     this.direction    = direction;
+    this.rdvKw        = powerKw;
     this.powerKw      = powerKw;
     this.energyKwh    = +(powerKw * 0.25).toFixed(4);
+
+    // Angebotspreis (pay-as-bid)
+    this.angebotspreis = priceEurKwh;
     this.priceEurKwh  = priceEurKwh;
+
+    // Netzwirksamkeit
+    this.sensitivitaet = sensitivitaet;
+    this.netzwirksamerBeitragKw = +(powerKw * sensitivitaet).toFixed(2);
+
     this.source       = source;
     this.flexSpaceRef = flexSpaceRef;
     this.priority     = Math.max(1, Math.min(10, Math.round(priority)));
+
+    // Status-Lifecycle: offen → bezuschlagt → abgerufen → ausgefuehrt → abgerechnet
     this.status       = 'pending';
     this.createdAt    = new Date().toISOString();
     this.clearingPrice = null;
     this.matchedWith  = null;
+
+    // Fahrplan (Planwertmodell)
+    this.fahrplan     = {
+      slotStart:    this.slotStart,
+      slotEnd:      this.slotEnd,
+      planwertKw:   powerKw,
+      istwertKw:    null,
+      abweichungKw: null
+    };
+  }
+
+  toRedispatchGebot() {
+    return {
+      gebotId:         this.gebotId,
+      gebotTyp:        this.gebotTyp,
+      maloId:          this.maloId,
+      meloId:          this.meloId,
+      poolId:          this.poolId,
+      clusterId:       this.clusterId,
+      did:             this.did,
+      slotStart:       this.slotStart,
+      slotEnd:         this.slotEnd,
+      direction:       this.direction,
+      rdvKw:           this.rdvKw,
+      energyKwh:       this.energyKwh,
+      angebotspreis:   this.angebotspreis,
+      sensitivitaet:   this.sensitivitaet,
+      netzwirksamerBeitragKw: this.netzwirksamerBeitragKw,
+      source:          this.source,
+      status:          this.status,
+      fahrplan:        this.fahrplan,
+      createdAt:       this.createdAt
+    };
   }
 
   toJSON() {
-    return { ...this };
+    return this.toRedispatchGebot();
   }
 }
 
 // ===========================================================================
-// ClearingMatcher — Uniform Price Auction (pay-as-cleared)
+// ClearingMatcher — Redispatch 3.0 Merit-Order-Liste (MOL)
+// Gemeinsame MOL aus kosten- und marktbasierten Geboten, pay-as-bid
 // ===========================================================================
 class ClearingMatcher {
   constructor() {
     this.clearingHistory = [];
   }
 
-  clearSlot(bids, slotStart) {
-    const offers  = bids.filter(b => b.direction === 'offer' && b.status === 'pending')
-      .sort((a, b) => a.priceEurKwh - b.priceEurKwh || b.priority - a.priority);
+  buildMeritOrderListe(bids) {
+    const offers = bids.filter(b => b.direction === 'offer' && b.status === 'pending')
+      .sort((a, b) => a.angebotspreis - b.angebotspreis || b.priority - a.priority);
     const demands = bids.filter(b => b.direction === 'demand' && b.status === 'pending')
-      .sort((a, b) => b.priceEurKwh - a.priceEurKwh || b.priority - a.priority);
+      .sort((a, b) => b.angebotspreis - a.angebotspreis || b.priority - a.priority);
 
-    if (offers.length === 0 || demands.length === 0) {
-      return { slotStart, clearingPrice: null, matchedPairs: [], unmatchedOffers: offers.length, unmatchedDemands: demands.length, totalVolumeKwh: 0 };
+    return {
+      offers: offers.map((b, rang) => ({
+        rang: rang + 1,
+        gebotId: b.gebotId,
+        maloId: b.maloId,
+        poolId: b.poolId,
+        rdvKw: b.rdvKw,
+        energyKwh: b.energyKwh,
+        angebotspreis: b.angebotspreis,
+        sensitivitaet: b.sensitivitaet,
+        netzwirksamerBeitragKw: b.netzwirksamerBeitragKw,
+        source: b.source,
+        bid: b
+      })),
+      demands: demands.map((b, rang) => ({
+        rang: rang + 1,
+        gebotId: b.gebotId,
+        maloId: b.maloId,
+        poolId: b.poolId,
+        rdvKw: b.rdvKw,
+        energyKwh: b.energyKwh,
+        angebotspreis: b.angebotspreis,
+        sensitivitaet: b.sensitivitaet,
+        netzwirksamerBeitragKw: b.netzwirksamerBeitragKw,
+        source: b.source,
+        bid: b
+      }))
+    };
+  }
+
+  clearSlot(bids, slotStart) {
+    const mol = this.buildMeritOrderListe(bids);
+
+    if (mol.offers.length === 0 || mol.demands.length === 0) {
+      return { slotStart, clearingPrice: null, meritOrderListe: mol, matchedPairs: [],
+        unmatchedOffers: mol.offers.length, unmatchedDemands: mol.demands.length,
+        totalVolumeKwh: 0, verfahren: 'pay_as_bid' };
     }
 
-    let supplyKwh = 0;
-    let demandKwh = 0;
     let clearingPrice = null;
     let si = 0, di = 0;
+    let matchedSupply = 0, matchedDemand = 0;
 
-    const supplyStack = [];
-    const demandStack = [];
+    while (si < mol.offers.length && di < mol.demands.length) {
+      const offer = mol.offers[si];
+      const demand = mol.demands[di];
 
-    for (const o of offers) supplyStack.push({ bid: o, cumKwh: (supplyKwh += o.energyKwh) });
-    for (const d of demands) demandStack.push({ bid: d, cumKwh: (demandKwh += d.energyKwh) });
-
-    const totalVolume = Math.min(supplyKwh, demandKwh);
-
-    let matchedSupply = 0;
-    let matchedDemand = 0;
-    si = 0; di = 0;
-
-    while (si < supplyStack.length && di < demandStack.length) {
-      const offer  = supplyStack[si].bid;
-      const demand = demandStack[di].bid;
-
-      if (offer.priceEurKwh <= demand.priceEurKwh) {
-        clearingPrice = offer.priceEurKwh;
+      if (offer.angebotspreis <= demand.angebotspreis) {
+        clearingPrice = offer.angebotspreis;
         matchedSupply += offer.energyKwh;
         matchedDemand += demand.energyKwh;
-
         if (matchedSupply <= matchedDemand) si++;
         if (matchedDemand <= matchedSupply) di++;
       } else {
@@ -750,51 +828,77 @@ class ClearingMatcher {
     }
 
     if (clearingPrice === null) {
-      return { slotStart, clearingPrice: null, matchedPairs: [], unmatchedOffers: offers.length, unmatchedDemands: demands.length, totalVolumeKwh: 0 };
+      return { slotStart, clearingPrice: null, meritOrderListe: mol, matchedPairs: [],
+        unmatchedOffers: mol.offers.length, unmatchedDemands: mol.demands.length,
+        totalVolumeKwh: 0, verfahren: 'pay_as_bid' };
     }
 
     const matchedPairs = [];
-    const usedOffers  = new Set();
     const usedDemands = new Set();
 
-    for (const o of offers) {
-      if (o.priceEurKwh > clearingPrice) continue;
-      for (const d of demands) {
-        if (usedDemands.has(d.bidId)) continue;
-        if (d.priceEurKwh < clearingPrice) continue;
+    for (const o of mol.offers) {
+      if (o.angebotspreis > clearingPrice) continue;
+      for (const d of mol.demands) {
+        if (usedDemands.has(d.gebotId)) continue;
+        if (d.angebotspreis < clearingPrice) continue;
         if (o.maloId === d.maloId) continue;
 
         const volumeKwh = Math.min(o.energyKwh, d.energyKwh);
+        // Pay-as-bid: jedes Gebot wird zum eigenen Angebotspreis vergütet
+        const abrufpreisOffer = o.angebotspreis;
+        const abrufpreisDemand = d.angebotspreis;
+        const midPrice = +((abrufpreisOffer + abrufpreisDemand) / 2).toFixed(4);
+
         matchedPairs.push({
-          offerBid:     o.bidId,
-          demandBid:    d.bidId,
-          offerMalo:    o.maloId,
-          demandMalo:   d.maloId,
-          volumeKwh:    +volumeKwh.toFixed(4),
-          clearingPrice: +clearingPrice.toFixed(4),
-          totalEur:     +(volumeKwh * clearingPrice).toFixed(4)
+          // RD3.0 Abruf-Struktur
+          abrufId:       'abruf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 4),
+          offerGebotId:  o.gebotId,
+          demandGebotId: d.gebotId,
+          offerBid:      o.gebotId,
+          demandBid:     d.gebotId,
+          offerMalo:     o.maloId,
+          demandMalo:    d.maloId,
+          offerPool:     o.poolId,
+          demandPool:    d.poolId,
+          abrufLeistungKw: +(volumeKwh * 4).toFixed(2),
+          volumeKwh:     +volumeKwh.toFixed(4),
+          abrufpreisOffer: abrufpreisOffer,
+          abrufpreisDemand: abrufpreisDemand,
+          clearingPrice: midPrice,
+          totalEur:      +(volumeKwh * midPrice).toFixed(4),
+          verguetungOffer: +(volumeKwh * abrufpreisOffer).toFixed(4),
+          verguetungDemand: +(volumeKwh * abrufpreisDemand).toFixed(4),
+          verfahren:     'pay_as_bid'
         });
 
-        o.status        = 'matched';
-        o.clearingPrice = clearingPrice;
-        o.matchedWith   = d.bidId;
-        d.status        = 'matched';
-        d.clearingPrice = clearingPrice;
-        d.matchedWith   = o.bidId;
+        o.bid.status = 'matched';
+        o.bid.clearingPrice = abrufpreisOffer;
+        o.bid.matchedWith = d.gebotId;
+        o.bid.fahrplan.istwertKw = o.bid.fahrplan.planwertKw;
+        o.bid.fahrplan.abweichungKw = 0;
 
-        usedOffers.add(o.bidId);
-        usedDemands.add(d.bidId);
+        d.bid.status = 'matched';
+        d.bid.clearingPrice = abrufpreisDemand;
+        d.bid.matchedWith = o.gebotId;
+        d.bid.fahrplan.istwertKw = d.bid.fahrplan.planwertKw;
+        d.bid.fahrplan.abweichungKw = 0;
+
+        usedDemands.add(d.gebotId);
         break;
       }
     }
 
     const result = {
       slotStart,
+      slotEnd: new Date(new Date(slotStart).getTime() + 900_000).toISOString(),
+      verfahren: 'pay_as_bid',
       clearingPrice: +clearingPrice.toFixed(4),
+      meritOrderListe: { offerCount: mol.offers.length, demandCount: mol.demands.length },
       matchedPairs,
-      unmatchedOffers:  offers.filter(o => o.status === 'pending').length,
-      unmatchedDemands: demands.filter(d => d.status === 'pending').length,
-      totalVolumeKwh:   +matchedPairs.reduce((s, p) => s + p.volumeKwh, 0).toFixed(4),
+      unmatchedOffers: mol.offers.filter(o => o.bid.status === 'pending').length,
+      unmatchedDemands: mol.demands.filter(d => d.bid.status === 'pending').length,
+      totalVolumeKwh: +matchedPairs.reduce((s, p) => s + p.volumeKwh, 0).toFixed(4),
+      totalEur: +matchedPairs.reduce((s, p) => s + p.totalEur, 0).toFixed(4),
       timestamp: new Date().toISOString()
     };
 
@@ -867,102 +971,203 @@ class SlotScheduler {
 }
 
 // ===========================================================================
-// EfdmAdapter — EFDM v1.1 compliant JSON generation
+// Rd30Adapter — Redispatch 3.0 Datenmodell (RDV, Abruf, Abrechnung)
+// (TransnetBW/E-Bridge "Redispatch 3.0: Zielmodell" + OctoFlexBW/DataFlex)
+// Kurzfristige Arbeitsangebote, Pool-Aggregation, Planwertmodell
 // ===========================================================================
-class EfdmAdapter {
-  static createFlexibilitySpace(maloNode) {
+class Rd30Adapter {
+
+  static _uuid() {
+    return crypto.randomUUID();
+  }
+
+  // RDV-Meldung (Redispatch-Vermögen) für eine MaLo
+  static createRdvMeldung(maloNode) {
     const fs = maloNode.generateFlexSpace();
+    const flexKw = maloNode.availableFlexKw;
+
     return {
-      '@context': 'https://2025.2.2.2.2.2.2.2.2.2/efdm/v1.1',
-      '@type': 'FlexibilitaetsRaum',
-      metadata: {
-        id: fs.id,
-        version: '1.1',
-        created: new Date().toISOString(),
-        source: 'TheElectronChain_v4'
+      meldungId:    Rd30Adapter._uuid(),
+      typ:          'RDV_MELDUNG',
+      maloId:       maloNode.maloId,
+      meloId:       maloNode.meloId,
+      poolId:       'pool_' + maloNode.maloId,
+      did:          maloNode.did,
+      slotStart:    fs.validity.start,
+      slotEnd:      fs.validity.end,
+      rdvPositivKw: maloNode.canOffer ? +flexKw.toFixed(2) : 0,
+      rdvNegativKw: maloNode.needsDemand ? +flexKw.toFixed(2) : 0,
+      fahrplan: {
+        slotStart: fs.validity.start,
+        slotEnd:   fs.validity.end,
+        planwertKw: +flexKw.toFixed(2),
+        source:     maloNode.solar.powerW > 200 ? 'pv' : 'battery'
       },
-      utilizationContext: {
-        status: fs.status,
-        externallyTradeable: fs.externallyTradeable,
-        autoTradeable: fs.autoTradeable
+      speicher: maloNode.battery.capacityWh > 0 ? {
+        typ:           maloNode.battery.type,
+        kapazitaetKwh: +(maloNode.battery.capacityWh / 1000).toFixed(1),
+        socProzent:    +maloNode.battery.soc.toFixed(1),
+        maxLadeKw:     +(maloNode.battery.capacityWh / 2000).toFixed(1),
+        maxEntladeKw:  +(maloNode.battery.capacityWh / 2000).toFixed(1)
+      } : null,
+      standort: {
+        meterLocation: maloNode.meloId,
+        lat: maloNode.lat,
+        lon: maloNode.lon,
+        spannungsebeneKv: 0.4
       },
-      validity: fs.validity,
-      flexibleLoads: fs.flexibleLoads,
-      storages: fs.storages,
-      location: fs.location,
-      dependencies: []
+      status:    'verfuegbar',
+      createdAt: new Date().toISOString()
     };
   }
 
-  static createFLMP(matchedPair, clearing) {
+  // Aggregierte Pool-RDV-Meldung für Redispatch 3.0
+  static createAggregatedRdvMeldung(maloNodes, slotStart, slotEnd) {
+    const ressourcen = [];
+    let totalRdvPositivKw = 0;
+    let totalRdvNegativKw = 0;
+
+    for (const node of maloNodes) {
+      if (!node.online) continue;
+      const flexKw = node.availableFlexKw;
+      if (flexKw < 0.1) continue;
+
+      const rdvPos = node.canOffer ? flexKw : 0;
+      const rdvNeg = node.needsDemand ? flexKw : 0;
+      totalRdvPositivKw += rdvPos;
+      totalRdvNegativKw += rdvNeg;
+
+      ressourcen.push({
+        maloId:        node.maloId,
+        meloId:        node.meloId,
+        poolId:        'pool_' + node.maloId,
+        did:           node.did,
+        rdvPositivKw:  +rdvPos.toFixed(2),
+        rdvNegativKw:  +rdvNeg.toFixed(2),
+        source:        node.solar.powerW > 200 ? 'pv' : 'battery',
+        socProzent:    +node.battery.soc.toFixed(1),
+        sensitivitaet: 1.0
+      });
+    }
+
     return {
-      '@context': 'https://2025.2.2.2.2.2.2.2.2.2/efdm/v1.1',
-      '@type': 'FlexibleLastMassnahmenPaket',
-      metadata: {
-        id: 'flmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        version: '1.1',
-        created: new Date().toISOString()
-      },
-      status: 'toExecute',
-      slotStart: clearing.slotStart,
-      flexibleLoadMeasures: [{
-        id: 'flm_' + matchedPair.offerBid,
-        direction: 'feedIn',
-        maloId: matchedPair.offerMalo,
-        loadChangeProfile: {
-          power: { value: matchedPair.volumeKwh * 4, unit: 'kW', referencePoint: 'scheduledLoad' },
-          duration: { value: 15, unit: 'min' }
-        },
-        reward: {
-          value: matchedPair.totalEur,
-          unit: 'EUR',
-          referencePoint: 'savings'
-        }
-      }, {
-        id: 'flm_' + matchedPair.demandBid,
-        direction: 'consumption',
-        maloId: matchedPair.demandMalo,
-        loadChangeProfile: {
-          power: { value: matchedPair.volumeKwh * 4, unit: 'kW', referencePoint: 'scheduledLoad' },
-          duration: { value: 15, unit: 'min' }
-        },
-        reward: {
-          value: -matchedPair.totalEur,
-          unit: 'EUR',
-          referencePoint: 'cost'
-        }
-      }]
+      meldungId:     Rd30Adapter._uuid(),
+      typ:           'AGGREGIERTE_RDV_MELDUNG',
+      aggregatorId:  'TheElectronChain',
+      slotStart,
+      slotEnd,
+      aggregationsebene: 'pool',
+      totalRdvPositivKw: +totalRdvPositivKw.toFixed(2),
+      totalRdvNegativKw: +totalRdvNegativKw.toFixed(2),
+      totalRdvNettoKw:   +(totalRdvPositivKw - totalRdvNegativKw).toFixed(2),
+      ressourcenCount:   ressourcen.length,
+      ressourcen,
+      bilanzierungsmodell: 'planwert',
+      createdAt:     new Date().toISOString()
     };
   }
 
-  static createFLMAP(flmp, wasSuccessful = true) {
+  // RD3.0 Abruf (Call-off) für ein matched pair
+  static createAbruf(matchedPair, clearing) {
     return {
-      '@context': 'https://2025.2.2.2.2.2.2.2.2.2/efdm/v1.1',
-      '@type': 'FlexibleLastMassnahmenAusfuehrungsProtokoll',
-      metadata: {
-        id: 'flmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        version: '1.1',
-        created: new Date().toISOString(),
-        flmpRef: flmp.metadata.id
+      abrufId:          matchedPair.abrufId,
+      typ:              'RD30_ABRUF',
+      slotStart:        clearing.slotStart,
+      slotEnd:          clearing.slotEnd || new Date(new Date(clearing.slotStart).getTime() + 900_000).toISOString(),
+      offerGebot: {
+        gebotId:        matchedPair.offerGebotId || matchedPair.offerBid,
+        maloId:         matchedPair.offerMalo,
+        poolId:         matchedPair.offerPool,
+        abrufLeistungKw: matchedPair.abrufLeistungKw,
+        angebotspreis:  matchedPair.abrufpreisOffer,
+        verguetungEur:  matchedPair.verguetungOffer
       },
-      status: wasSuccessful ? 'executed' : 'partiallyExecuted',
-      executionReport: {
-        plannedStart: flmp.slotStart,
-        actualStart:  flmp.slotStart,
-        actualEnd:    new Date(new Date(flmp.slotStart).getTime() + 900_000).toISOString(),
-        measures: flmp.flexibleLoadMeasures.map(m => ({
-          id: m.id,
-          status: wasSuccessful ? 'executed' : 'partiallyExecuted',
-          achievedPower: m.loadChangeProfile.power,
-          achievedDuration: m.loadChangeProfile.duration
-        }))
-      }
+      demandGebot: {
+        gebotId:        matchedPair.demandGebotId || matchedPair.demandBid,
+        maloId:         matchedPair.demandMalo,
+        poolId:         matchedPair.demandPool,
+        abrufLeistungKw: matchedPair.abrufLeistungKw,
+        angebotspreis:  matchedPair.abrufpreisDemand,
+        kostenEur:      matchedPair.verguetungDemand
+      },
+      volumeKwh:        matchedPair.volumeKwh,
+      verfahren:        matchedPair.verfahren || 'pay_as_bid',
+      status:           'abgerufen',
+      createdAt:        new Date().toISOString()
+    };
+  }
+
+  // RD3.0 Abruf für zentrale Redispatch-Allokation
+  static createRedispatchAbruf(allocatedBids, aggregated) {
+    return {
+      abrufId:     'rdabruf_' + Date.now(),
+      typ:         'RD30_ZENTRALER_ABRUF',
+      slotStart:   aggregated.slotStart,
+      slotEnd:     aggregated.slotEnd,
+      aggregationId: aggregated.id,
+      redispatchPreis: aggregated.redispatchPrice,
+      direction:   aggregated.direction,
+      massnahmen:  allocatedBids.map(bid => ({
+        gebotId:          bid.gebotId,
+        maloId:           bid.maloId,
+        poolId:           bid.poolId,
+        abrufLeistungKw:  +bid.powerKw.toFixed(2),
+        abrufEnergieKwh:  +(bid.powerKw * 0.25).toFixed(4),
+        angebotspreis:    bid.angebotspreis,
+        verguetungEur:    +(bid.powerKw * 0.25 * aggregated.redispatchPrice).toFixed(4),
+        fahrplan: {
+          planwertKw: +bid.powerKw.toFixed(2),
+          istwertKw:  +bid.powerKw.toFixed(2),
+          abweichungKw: 0
+        }
+      })),
+      totalLeistungKw:  +allocatedBids.reduce((s, b) => s + b.powerKw, 0).toFixed(2),
+      totalEnergieKwh:  +allocatedBids.reduce((s, b) => s + b.powerKw * 0.25, 0).toFixed(4),
+      totalVerguetungEur: +allocatedBids.reduce((s, b) => s + b.powerKw * 0.25 * aggregated.redispatchPrice, 0).toFixed(4),
+      status:      'abgerufen',
+      createdAt:   new Date().toISOString()
+    };
+  }
+
+  // RD3.0 Abrechnung (Settlement) im Planwertmodell
+  static createAbrechnung(matchedPair, clearing) {
+    return {
+      abrechnungId:   'abr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 4),
+      typ:            'RD30_ABRECHNUNG',
+      abrufId:        matchedPair.abrufId,
+      slotStart:      clearing.slotStart,
+      slotEnd:        clearing.slotEnd || new Date(new Date(clearing.slotStart).getTime() + 900_000).toISOString(),
+      bilanzierungsmodell: 'planwert',
+      offer: {
+        gebotId:      matchedPair.offerGebotId || matchedPair.offerBid,
+        maloId:       matchedPair.offerMalo,
+        planwertKw:   matchedPair.abrufLeistungKw,
+        istwertKw:    matchedPair.abrufLeistungKw,
+        ausfallarbeitKwh: matchedPair.volumeKwh,
+        angebotspreis: matchedPair.abrufpreisOffer,
+        verguetungEur: matchedPair.verguetungOffer,
+        bilanzkreisAusgleich: 'erfolgt'
+      },
+      demand: {
+        gebotId:      matchedPair.demandGebotId || matchedPair.demandBid,
+        maloId:       matchedPair.demandMalo,
+        planwertKw:   matchedPair.abrufLeistungKw,
+        istwertKw:    matchedPair.abrufLeistungKw,
+        ausfallarbeitKwh: matchedPair.volumeKwh,
+        angebotspreis: matchedPair.abrufpreisDemand,
+        kostenEur:    matchedPair.verguetungDemand,
+        bilanzkreisAusgleich: 'erfolgt'
+      },
+      volumeKwh:     matchedPair.volumeKwh,
+      verfahren:     'pay_as_bid',
+      status:        'abgerechnet',
+      createdAt:     new Date().toISOString()
     };
   }
 }
 
 // ===========================================================================
-// SettlementEngine — Post-slot Peaq on-chain settlement
+// SettlementEngine — Redispatch 3.0 Planwertmodell Settlement
 // ===========================================================================
 class SettlementEngine {
   constructor(chain) {
@@ -975,27 +1180,39 @@ class SettlementEngine {
   async settleClearing(clearing) {
     if (!clearing || !clearing.matchedPairs || clearing.matchedPairs.length === 0) return null;
 
+    const abrufe = clearing.matchedPairs.map(pair => Rd30Adapter.createAbruf(pair, clearing));
+    const abrechnungen = clearing.matchedPairs.map(pair => Rd30Adapter.createAbrechnung(pair, clearing));
+
     const settlement = {
       id:            'stl_' + Date.now(),
+      typ:           'RD30_SETTLEMENT',
+      verfahren:     'pay_as_bid',
+      bilanzierungsmodell: 'planwert',
       slotStart:     clearing.slotStart,
+      slotEnd:       clearing.slotEnd,
       clearingPrice: clearing.clearingPrice,
       pairs:         clearing.matchedPairs.length,
       totalKwh:      clearing.totalVolumeKwh,
       totalEur:      +clearing.matchedPairs.reduce((s, p) => s + p.totalEur, 0).toFixed(4),
+      abrufe,
+      abrechnungen,
+      meritOrderListe: clearing.meritOrderListe,
       timestamp:     new Date().toISOString(),
       onChain:       false,
       txHash:        null
     };
 
     const chainRecord = {
-      type:          'FLEX_SETTLEMENT',
-      settlement_id: settlement.id,
-      slot:          clearing.slotStart,
+      type:           'RD30_SETTLEMENT',
+      settlement_id:  settlement.id,
+      slot:           clearing.slotStart,
+      verfahren:      'pay_as_bid',
       clearing_price: clearing.clearingPrice,
-      volume_kwh:    settlement.totalKwh,
-      total_eur:     settlement.totalEur,
-      pairs:         clearing.matchedPairs,
-      timestamp:     settlement.timestamp
+      volume_kwh:     settlement.totalKwh,
+      total_eur:      settlement.totalEur,
+      abrufe,
+      abrechnungen,
+      timestamp:      settlement.timestamp
     };
 
     const stored = await this.chain?.storeData('settlement_' + settlement.id, chainRecord);
@@ -1026,6 +1243,226 @@ class SettlementEngine {
         : 0,
       lastSettlement:   this.settlements[0] || null
     };
+  }
+}
+
+// ===========================================================================
+// RedispatchAggregator — Aggregated flex offering for Redispatch 3.0
+// ===========================================================================
+class RedispatchAggregator {
+  constructor(gatewayUrl = null) {
+    this.gatewayUrl = gatewayUrl;
+    this.aggregatedOffers = new Map();
+    this.redispatchResults = [];
+    this.callbackTimeout = 120_000;
+  }
+
+  aggregateSlot(bids, slotStart, maloNodes = [], bezirkSummary = {}) {
+    const offers = bids.filter(b => b.direction === 'offer' && b.status === 'pending');
+    const demands = bids.filter(b => b.direction === 'demand' && b.status === 'pending');
+
+    const totalOfferKw = offers.reduce((s, b) => s + b.powerKw, 0);
+    const totalDemandKw = demands.reduce((s, b) => s + b.powerKw, 0);
+    const netFlexKw = totalOfferKw - totalDemandKw;
+
+    const avgOfferPrice = offers.length > 0
+      ? offers.reduce((s, b) => s + b.priceEurKwh, 0) / offers.length : 0;
+
+    const slotEnd = new Date(new Date(slotStart).getTime() + 900_000).toISOString();
+
+    const participatingMaloIds = [...new Set(offers.map(b => b.maloId))];
+    const participatingNodes = maloNodes.filter(n => participatingMaloIds.includes(n.maloId));
+    const rdvMeldung = participatingNodes.length > 0
+      ? Rd30Adapter.createAggregatedRdvMeldung(participatingNodes, slotStart, slotEnd)
+      : null;
+
+    const aggregated = {
+      id: 'rdagg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      slotStart,
+      slotEnd,
+      totalOfferKw: +totalOfferKw.toFixed(2),
+      totalDemandKw: +totalDemandKw.toFixed(2),
+      netFlexKw: +netFlexKw.toFixed(2),
+      netFlexKwh: +(netFlexKw * 0.25).toFixed(4),
+      avgPriceEurKwh: +avgOfferPrice.toFixed(4),
+      offerCount: offers.length,
+      demandCount: demands.length,
+      maloIds: participatingMaloIds,
+      bezirkSummary,
+      direction: netFlexKw >= 0 ? 'feedIn' : 'consumption',
+      status: 'pending',
+      submittedAt: null,
+      redispatchCalled: false,
+      redispatchVolume: 0,
+      redispatchPrice: null,
+      callbackReceived: false,
+      rdvMeldung,
+      abruf: null,
+      createdAt: new Date().toISOString()
+    };
+
+    this.aggregatedOffers.set(slotStart, aggregated);
+    this.cleanOld();
+    return aggregated;
+  }
+
+  async submitToGateway(aggregated) {
+    aggregated.submittedAt = new Date().toISOString();
+
+    if (!this.gatewayUrl) {
+      aggregated.status = 'simulated';
+      const called = Math.random() < 0.15;
+      aggregated.redispatchCalled = called;
+      if (called) {
+        aggregated.redispatchVolume = +(aggregated.netFlexKw * (0.3 + Math.random() * 0.5)).toFixed(2);
+        aggregated.redispatchPrice = +(aggregated.avgPriceEurKwh * (1.1 + Math.random() * 0.3)).toFixed(4);
+      }
+      aggregated.callbackReceived = true;
+      return aggregated;
+    }
+
+    try {
+      const payload = {
+        type: 'FLEX_AGGREGATION_OFFER',
+        slotStart: aggregated.slotStart,
+        slotEnd: aggregated.slotEnd,
+        direction: aggregated.direction,
+        netFlexKw: aggregated.netFlexKw,
+        netFlexKwh: aggregated.netFlexKwh,
+        priceEurKwh: aggregated.avgPriceEurKwh,
+        maloCount: aggregated.maloIds.length,
+        aggregatorId: aggregated.id,
+        rdvMeldung: aggregated.rdvMeldung,
+        timestamp: new Date().toISOString()
+      };
+
+      const resp = await fetch(this.gatewayUrl + '/api/v1/flex/offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000)
+      });
+
+      if (resp.ok) {
+        const result = await resp.json();
+        aggregated.status = 'submitted';
+        aggregated.gatewayRef = result.referenceId || null;
+      } else {
+        aggregated.status = 'gateway_error';
+      }
+    } catch (err) {
+      aggregated.status = 'gateway_unreachable';
+    }
+
+    return aggregated;
+  }
+
+  async waitForCallback(slotStart) {
+    const aggregated = this.aggregatedOffers.get(slotStart);
+    if (!aggregated) return null;
+    if (aggregated.callbackReceived) return aggregated;
+
+    if (this.gatewayUrl && aggregated.gatewayRef) {
+      try {
+        const resp = await fetch(
+          this.gatewayUrl + '/api/v1/flex/status/' + aggregated.gatewayRef,
+          { signal: AbortSignal.timeout(10_000) }
+        );
+        if (resp.ok) {
+          const result = await resp.json();
+          aggregated.redispatchCalled = result.called === true;
+          aggregated.redispatchVolume = result.volumeKw || 0;
+          aggregated.redispatchPrice = result.priceEurKwh || null;
+          aggregated.callbackReceived = true;
+        }
+      } catch {}
+    }
+
+    if (!aggregated.callbackReceived) {
+      aggregated.callbackReceived = true;
+      aggregated.redispatchCalled = false;
+    }
+
+    return aggregated;
+  }
+
+  getResidualBids(bids, aggregated) {
+    if (!aggregated.redispatchCalled) return bids;
+
+    let remainingRedispatchKw = aggregated.redispatchVolume;
+    const offers = bids.filter(b => b.direction === 'offer' && b.status === 'pending')
+      .sort((a, b) => a.priceEurKwh - b.priceEurKwh);
+
+    for (const offer of offers) {
+      if (remainingRedispatchKw <= 0) break;
+      if (offer.powerKw <= remainingRedispatchKw) {
+        offer.status = 'redispatch_allocated';
+        offer.clearingPrice = aggregated.redispatchPrice;
+        remainingRedispatchKw -= offer.powerKw;
+      } else {
+        const originalPower = offer.powerKw;
+        offer.powerKw = +(originalPower - remainingRedispatchKw).toFixed(2);
+        offer.energyKwh = +(offer.powerKw * 0.25).toFixed(4);
+
+        const rdBid = new FlexBid({
+          maloId: offer.maloId, meloId: offer.meloId, did: offer.did,
+          slotStart: offer.slotStart, direction: 'offer',
+          powerKw: +remainingRedispatchKw.toFixed(2),
+          priceEurKwh: aggregated.redispatchPrice,
+          source: offer.source, flexSpaceRef: offer.flexSpaceRef, priority: offer.priority
+        });
+        rdBid.status = 'redispatch_allocated';
+        rdBid.clearingPrice = aggregated.redispatchPrice;
+        bids.push(rdBid);
+
+        remainingRedispatchKw = 0;
+      }
+    }
+
+    return bids.filter(b => b.status === 'pending');
+  }
+
+  createRedispatchSettlement(aggregated, allocatedBids) {
+    if (!aggregated.redispatchCalled || allocatedBids.length === 0) return null;
+
+    const abruf = Rd30Adapter.createRedispatchAbruf(allocatedBids, aggregated);
+    aggregated.abruf = abruf;
+
+    return {
+      id: 'rdstl_' + Date.now(),
+      typ: 'RD30_SETTLEMENT',
+      verfahren: 'pay_as_bid',
+      bilanzierungsmodell: 'planwert',
+      slotStart: aggregated.slotStart,
+      slotEnd: aggregated.slotEnd,
+      aggregationId: aggregated.id,
+      direction: aggregated.direction,
+      abruf,
+      totalLeistungKw: abruf.totalLeistungKw,
+      totalEnergieKwh: abruf.totalEnergieKwh,
+      totalVerguetungEur: abruf.totalVerguetungEur,
+      redispatchPreis: aggregated.redispatchPrice,
+      maloIds: [...new Set(allocatedBids.map(b => b.maloId))],
+      gebotCount: allocatedBids.length,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  getForSlot(slotStart) {
+    return this.aggregatedOffers.get(slotStart) || null;
+  }
+
+  getHistory(n = 24) {
+    return [...this.aggregatedOffers.values()]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, n);
+  }
+
+  cleanOld() {
+    const cutoff = new Date(Date.now() - 7_200_000).toISOString();
+    for (const [key, val] of this.aggregatedOffers) {
+      if (val.createdAt < cutoff) this.aggregatedOffers.delete(key);
+    }
   }
 }
 
@@ -1245,10 +1682,11 @@ class TheElectronChain {
     this.p2pTrades        = [];
     this.activeEnergyFlow = null;
 
-    this.clearingMatcher  = new ClearingMatcher();
-    this.slotScheduler    = new SlotScheduler();
-    this.settlementEngine = null;
-    this.dynamicGridFee   = new DynamicGridFee();
+    this.clearingMatcher      = new ClearingMatcher();
+    this.slotScheduler        = new SlotScheduler();
+    this.settlementEngine     = null;
+    this.redispatchAggregator = null;
+    this.dynamicGridFee       = new DynamicGridFee();
 
     this.epexPrices    = [];
     this.pvForecast48h = [];
@@ -1302,9 +1740,13 @@ class TheElectronChain {
 
       agnes_enabled:         c.agnes_enabled !== false,
       community_flex_enabled: c.community_flex_enabled !== false,
-      clearing_mode:         c.clearing_mode || 'uniform_price',
+      clearing_mode:         c.clearing_mode || 'pay_as_bid',
       min_flex_bid_kw:       c.min_flex_bid_kw || 0.1,
       settlement_penalty_pct: c.settlement_penalty_pct || 10,
+
+      redispatch_enabled:    c.redispatch_enabled !== false,
+      redispatch_gateway_url: c.redispatch_gateway_url || '',
+      redispatch_min_flex_kw: c.redispatch_min_flex_kw || 1.0,
 
       // Local node (single MaLo per HA instance)
       node_name:       c.node_name       || 'My MaLo',
@@ -1393,6 +1835,9 @@ class TheElectronChain {
     this.chain = new PeaqChain(this.config.network_url, this.machineWallet);
     await this.chain.connect();
     this.settlementEngine = new SettlementEngine(this.chain);
+    this.redispatchAggregator = new RedispatchAggregator(
+      this.config.redispatch_gateway_url || null
+    );
     this.log('info', this.chain.demoMode
       ? 'Running in demo mode (no on-chain writes)'
       : 'Connected to Peaq ' + this.config.network_type
@@ -1491,8 +1936,9 @@ class TheElectronChain {
   // -------------------------------------------------------------------------
   async publishLocalNode() {
     if (!this.chain || this.chain.demoMode || !this.localNode) return;
+    const rdv = Rd30Adapter.createRdvMeldung(this.localNode);
     const meta = {
-      version:    1,
+      version:    2,
       did:        this.did,
       address:    this.machineWallet.getAddress(),
       name:       this.localNode.name,
@@ -1503,10 +1949,13 @@ class TheElectronChain {
       lon:        this.localNode.lon,
       addressStr: this.localNode.address,
       pvPeakW:    this.config.node_pv_peak_wp,
+      rdvPositivKw: rdv.rdvPositivKw,
+      rdvNegativKw: rdv.rdvNegativKw,
+      socProzent:   +this.localNode.battery.soc.toFixed(1),
       knownPeers: [...this.discoveredPeers.keys()],
       publishedAt: new Date().toISOString()
     };
-    const ok = await this.chain.storeData('tec_node_v1', meta);
+    const ok = await this.chain.storeData('tec_node_v2', meta);
     if (ok) this.log('debug', 'Published local node metadata to peaq storage');
   }
 
@@ -1529,7 +1978,10 @@ class TheElectronChain {
       if (!addr || visited.has(addr.toLowerCase())) continue;
       visited.add(addr.toLowerCase());
 
-      const meta = await this.chain.readData('tec_node_v1', addr);
+      let meta = await this.chain.readData('tec_node_v2', addr);
+      if (!meta || !meta.address) {
+        meta = await this.chain.readData('tec_node_v1', addr);
+      }
       if (!meta || !meta.address) continue;
 
       this.discoveredPeers.set(meta.address.toLowerCase(), meta);
@@ -1558,6 +2010,9 @@ class TheElectronChain {
         node.lat = meta.lat ?? node.lat;
         node.lon = meta.lon ?? node.lon;
         node.lastSeen = new Date();
+      }
+      if (meta.socProzent !== undefined && node.battery) {
+        node.battery.soc = meta.socProzent;
       }
 
       // 1-hop gossip: enqueue peers-of-peers
@@ -1882,35 +2337,105 @@ class TheElectronChain {
     const bids = this.slotScheduler.getBidsForSlot(currentSlotKey);
 
     if (bids.length < 2) {
-      this.log('debug', 'Slot auction: not enough bids (' + bids.length + ')');
+      this.log('debug', 'MOL-Clearing: nicht genug Gebote (' + bids.length + ')');
       return null;
     }
 
-    const clearing = this.clearingMatcher.clearSlot(bids, currentSlotKey);
+    // --- Phase 1: Redispatch 3.0 Aggregation ---
+    let redispatchSettlement = null;
+    let residualBids = bids;
 
-    if (clearing.matchedPairs.length > 0) {
-      this.log('info', 'CLEARING ' + SlotScheduler.slotLabel(currentSlotKey) +
-        ': ' + clearing.matchedPairs.length + ' pairs @ ' + (clearing.clearingPrice * 100).toFixed(1) +
-        ' ct/kWh | ' + clearing.totalVolumeKwh.toFixed(2) + ' kWh');
+    if (this.config.redispatch_enabled && this.redispatchAggregator) {
+      const bezirkSummary = this.maloRegistry.getBezirkSummary();
+      const maloNodes = this.maloRegistry.getAll();
+      const aggregated = this.redispatchAggregator.aggregateSlot(bids, currentSlotKey, maloNodes, bezirkSummary);
 
-      const settlement = await this.settlementEngine.settleClearing(clearing);
-      if (settlement) {
-        this.earnings += settlement.totalEur;
-        this.log('info', 'Settlement: ' + settlement.id + ' | ' + settlement.totalEur.toFixed(4) + ' EUR' +
-          (settlement.onChain ? ' [on-chain]' : ' [local]'));
+      if (aggregated.netFlexKw >= this.config.redispatch_min_flex_kw) {
+        this.log('info', 'RD3.0 ' + SlotScheduler.slotLabel(currentSlotKey) +
+          ': aggregated ' + aggregated.netFlexKw.toFixed(1) + ' kW (' +
+          aggregated.offerCount + ' offers) → submitting');
+
+        await this.redispatchAggregator.submitToGateway(aggregated);
+        await this.redispatchAggregator.waitForCallback(currentSlotKey);
+
+        if (aggregated.redispatchCalled) {
+          this.redispatchAggregator.getResidualBids(bids, aggregated);
+          const allocated = bids.filter(b => b.status === 'redispatch_allocated');
+          redispatchSettlement = this.redispatchAggregator.createRedispatchSettlement(aggregated, allocated);
+
+          if (redispatchSettlement) {
+            const chainRecord = {
+              type: 'REDISPATCH_30_SETTLEMENT',
+              ...redispatchSettlement
+            };
+            await this.chain?.storeData('rd30_' + redispatchSettlement.id, chainRecord);
+            this.earnings += redispatchSettlement.totalVerguetungEur;
+
+            this.log('info', 'RD3.0 ABRUF ' + SlotScheduler.slotLabel(currentSlotKey) +
+              ': ' + redispatchSettlement.totalLeistungKw.toFixed(1) + ' kW @ ' +
+              (redispatchSettlement.redispatchPreis * 100).toFixed(1) + ' ct/kWh | ' +
+              redispatchSettlement.totalVerguetungEur.toFixed(4) + ' EUR');
+          }
+
+          residualBids = bids.filter(b => b.status === 'pending');
+        } else {
+          this.log('info', 'RD3.0 ' + SlotScheduler.slotLabel(currentSlotKey) +
+            ': kein Abruf → P2P-Clearing');
+        }
       }
-
-      this.broadcastWS({
-        type: 'clearing',
-        slot: currentSlotKey,
-        clearingPrice: clearing.clearingPrice,
-        pairs: clearing.matchedPairs.length,
-        volumeKwh: clearing.totalVolumeKwh
-      });
     }
 
+    // --- Phase 2: P2P-Clearing für residuale Bids ---
+    let clearing = null;
+    const pendingBids = residualBids.filter(b => b.status === 'pending');
+
+    if (pendingBids.length >= 2) {
+      clearing = this.clearingMatcher.clearSlot(pendingBids, currentSlotKey);
+
+      if (clearing.matchedPairs.length > 0) {
+        this.log('info', 'P2P CLEARING ' + SlotScheduler.slotLabel(currentSlotKey) +
+          ': ' + clearing.matchedPairs.length + ' pairs @ ' + (clearing.clearingPrice * 100).toFixed(1) +
+          ' ct/kWh | ' + clearing.totalVolumeKwh.toFixed(2) + ' kWh');
+
+        const settlement = await this.settlementEngine.settleClearing(clearing);
+        if (settlement) {
+          this.earnings += settlement.totalEur;
+          this.log('info', 'Settlement: ' + settlement.id + ' | ' + settlement.totalEur.toFixed(4) + ' EUR' +
+            (settlement.onChain ? ' [on-chain]' : ' [local]'));
+        }
+      }
+    }
+
+    // Planwertmodell: Istwert-Korrektur via SMGw (wenn verfügbar)
+    if (this.smgwClient && this.localNode) {
+      const meterReading = await this.smgwClient.readMeter();
+      if (meterReading && meterReading.activePowerW !== null) {
+        const actualKw = +(Math.abs(meterReading.activePowerW) / 1000).toFixed(2);
+        for (const bid of bids) {
+          if (bid.maloId === this.localNode.maloId && bid.status === 'matched' && bid.fahrplan) {
+            bid.fahrplan.istwertKw = actualKw;
+            bid.fahrplan.abweichungKw = +(actualKw - bid.fahrplan.planwertKw).toFixed(2);
+          }
+        }
+      }
+    }
+
+    this.broadcastWS({
+      type: 'clearing',
+      slot: currentSlotKey,
+      redispatch: redispatchSettlement ? {
+        called: true,
+        volumeKw: redispatchSettlement.totalLeistungKw,
+        preisEurKwh: redispatchSettlement.redispatchPreis,
+        verguetungEur: redispatchSettlement.totalVerguetungEur
+      } : { called: false },
+      clearingPrice: clearing?.clearingPrice || null,
+      pairs: clearing?.matchedPairs?.length || 0,
+      volumeKwh: clearing?.totalVolumeKwh || 0
+    });
+
     this.slotScheduler.cleanOldSlots();
-    return clearing;
+    return { clearing, redispatchSettlement };
   }
 
   // -------------------------------------------------------------------------
@@ -2073,6 +2598,7 @@ class TheElectronChain {
       maloSummary:  ns,
       bezirkSummary: bs,
       clearingHistory: this.clearingMatcher.getHistory(4),
+      redispatchHistory: this.redispatchAggregator?.getHistory(4) || [],
       settlementSummary: this.settlementEngine?.getSummary(),
       nextSlot: this.slotScheduler.getNextSlotKey(),
       trades:       this.trades.length,
@@ -2108,7 +2634,7 @@ class TheElectronChain {
     });
 
     // --- API Endpoints ---
-    app.get('/api/health',  (_, res) => res.json({ status: 'ok', version: '4.0.0', platform: 'TheElectronChain' }));
+    app.get('/api/health',  (_, res) => res.json({ status: 'ok', version: '4.1.0', platform: 'TheElectronChain', verfahren: 'RD3.0 Pay-as-Bid' }));
     app.get('/api/status',  (_, res) => res.json(this.getStateSnapshot()));
 
     app.get('/api/prices',  (_, res) => res.json({
@@ -2160,6 +2686,51 @@ class TheElectronChain {
       history: this.settlementEngine?.getHistory(24)
     }));
 
+    app.get('/api/redispatch', (_, res) => res.json({
+      enabled: this.config.redispatch_enabled,
+      gatewayConfigured: !!this.config.redispatch_gateway_url,
+      minFlexKw: this.config.redispatch_min_flex_kw,
+      history: this.redispatchAggregator?.getHistory(24) || [],
+      currentSlot: this.redispatchAggregator?.getForSlot(this.slotScheduler.getCurrentSlotKey())
+    }));
+
+    app.get('/api/redispatch/:slot', (req, res) => {
+      const entry = this.redispatchAggregator?.getForSlot(req.params.slot);
+      res.json(entry || { error: 'no aggregation for this slot' });
+    });
+
+    app.post('/api/redispatch/callback', (req, res) => {
+      const { slotStart, called, volumeKw, priceEurKwh } = req.body;
+      const aggregated = this.redispatchAggregator?.getForSlot(slotStart);
+      if (!aggregated) return res.status(404).json({ error: 'slot not found' });
+      aggregated.redispatchCalled = called === true;
+      aggregated.redispatchVolume = volumeKw || 0;
+      aggregated.redispatchPrice = priceEurKwh || null;
+      aggregated.callbackReceived = true;
+      this.log('info', 'RD3.0 callback: slot=' + slotStart + ' called=' + called);
+      res.json({ ok: true, aggregated });
+    });
+
+    app.get('/api/rd30/mol', (_, res) => {
+      const nextSlot = this.slotScheduler.getNextSlotKey();
+      const bids = this.slotScheduler.getBidsForSlot(nextSlot);
+      const mol = this.clearingMatcher.buildMeritOrderListe(bids);
+      res.json({
+        slotStart: nextSlot,
+        verfahren: 'pay_as_bid',
+        offers: mol.offers.map(o => ({
+          rang: o.rang, gebotId: o.gebotId, maloId: o.maloId, poolId: o.poolId,
+          rdvKw: o.rdvKw, energyKwh: o.energyKwh, angebotspreis: o.angebotspreis,
+          netzwirksamerBeitragKw: o.netzwirksamerBeitragKw, source: o.source
+        })),
+        demands: mol.demands.map(d => ({
+          rang: d.rang, gebotId: d.gebotId, maloId: d.maloId, poolId: d.poolId,
+          rdvKw: d.rdvKw, energyKwh: d.energyKwh, angebotspreis: d.angebotspreis,
+          netzwirksamerBeitragKw: d.netzwirksamerBeitragKw, source: d.source
+        }))
+      });
+    });
+
     app.get('/api/grid-fees', (_, res) => res.json({
       current: this.dynamicGridFee.getCurrentFee(),
       agnesEnabled: this.config.agnes_enabled,
@@ -2176,10 +2747,32 @@ class TheElectronChain {
       });
     });
 
-    app.get('/api/efdm/flexspace/:id', (req, res) => {
+    app.get('/api/rd30/rdv/:id', (req, res) => {
       const node = this.maloRegistry.get(req.params.id);
       if (!node) return res.status(404).json({ error: 'not found' });
-      res.json(EfdmAdapter.createFlexibilitySpace(node));
+      res.json(Rd30Adapter.createRdvMeldung(node));
+    });
+
+    app.get('/api/rd30/rdv', (_, res) => {
+      const currentSlotKey = this.slotScheduler.getCurrentSlotKey();
+      const agg = this.redispatchAggregator?.getForSlot(currentSlotKey);
+      if (!agg || !agg.rdvMeldung) {
+        const nodes = this.maloRegistry.getAll();
+        const slotEnd = new Date(new Date(currentSlotKey).getTime() + 900_000).toISOString();
+        res.json(Rd30Adapter.createAggregatedRdvMeldung(nodes, currentSlotKey, slotEnd));
+      } else {
+        res.json(agg.rdvMeldung);
+      }
+    });
+
+    app.get('/api/rd30/redispatch/:slot', (req, res) => {
+      const agg = this.redispatchAggregator?.getForSlot(req.params.slot);
+      if (!agg) return res.status(404).json({ error: 'no redispatch data for this slot' });
+      res.json({
+        aggregation: agg,
+        rdvMeldung: agg.rdvMeldung,
+        abruf: agg.abruf
+      });
     });
 
     // Legacy order endpoints
@@ -2277,6 +2870,7 @@ class TheElectronChain {
       maloSummary:  this.maloRegistry.summary(),
       bezirkSummary: this.maloRegistry.getBezirkSummary(),
       clearingHistory: this.clearingMatcher.getHistory(4),
+      redispatchHistory: this.redispatchAggregator?.getHistory(4) || [],
       settlementSummary: this.settlementEngine?.getSummary(),
       nextSlot:     this.slotScheduler.getNextSlotKey(),
       trades:       this.trades.length,
@@ -2288,7 +2882,8 @@ class TheElectronChain {
         max_buy_price:   this.config?.max_buy_price,
         battery_reserve: this.config?.battery_reserve,
         agnes_enabled:   this.config?.agnes_enabled,
-        clearing_mode:   this.config?.clearing_mode
+        clearing_mode:   this.config?.clearing_mode,
+        redispatch_enabled: this.config?.redispatch_enabled
       }
     };
   }
@@ -2436,7 +3031,8 @@ class TheElectronChain {
       ? 'Keine peaq-Peers entdeckt. Seeds in discovery_seeds konfigurieren.'
       : peers.map(function(p) {
           return '&bull; ' + (p.name || '?') + ' &middot; ' + (p.maloId || '?')
-               + ' &middot; SoC ' + p.battery.soc.toFixed(0) + '%';
+               + ' &middot; SoC ' + p.battery.soc.toFixed(0) + '%'
+               + ' &middot; Flex ' + p.availableFlexKw.toFixed(1) + ' kW';
         }).join('<br>');
 
     // Bezirk cards
@@ -2468,6 +3064,12 @@ class TheElectronChain {
     })));
 
     const bezirkeJson = JSON.stringify(KOELN_BEZIRKE);
+
+    // RD3.0 aggregation state
+    const currentSlotKey = this.slotScheduler.getCurrentSlotKey();
+    const rdAgg = this.redispatchAggregator?.getForSlot(currentSlotKey);
+    const rdHist = this.redispatchAggregator?.getHistory(6) || [];
+    const rdCalledCount = rdHist.filter(a => a.redispatchCalled).length;
 
     // Clearing history mini bars
     const clearHist = this.clearingMatcher.getHistory(12);
@@ -2540,6 +3142,14 @@ class TheElectronChain {
       + '          document.getElementById("total-solar").textContent = (d.maloSummary.totalSolarW / 1000).toFixed(0);\n'
       + '        }\n'
       + '        if (d.nextSlot) document.getElementById("next-slot").textContent = d.nextSlot.slice(11, 16);\n'
+      + '        if (d.redispatchHistory) {\n'
+      + '          var rdh = d.redispatchHistory;\n'
+      + '          var called = rdh.filter(function(a) { return a.redispatchCalled; }).length;\n'
+      + '          var rdA = document.getElementById("rd-abrufe"); if (rdA) rdA.textContent = called + " / " + rdh.length;\n'
+      + '          if (rdh.length > 0 && rdh[0].netFlexKw !== undefined) {\n'
+      + '            var rdAg = document.getElementById("rd-agg"); if (rdAg) rdAg.textContent = rdh[0].netFlexKw.toFixed(1) + " kW (" + rdh[0].status + ")";\n'
+      + '          }\n'
+      + '        }\n'
       + '      }\n'
       + '    } catch(err) {}\n'
       + '  };\n'
@@ -2599,7 +3209,7 @@ class TheElectronChain {
 + '    <div class="card c4">\n'
 + '      <div class="ctitle">Flex-Markt &middot; Next Slot</div>\n'
 + '      <div class="slot-card" style="text-align:center;margin-bottom:8px">\n'
-+ '        <div class="slot-label">Next 15-min Auction</div>\n'
++ '        <div class="slot-label">RD3.0 Merit-Order (15 min)</div>\n'
 + '        <div class="slot-time" id="next-slot">' + nextSlot + '</div>\n'
 + '      </div>\n'
 + '      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.68rem">\n'
@@ -2638,6 +3248,17 @@ class TheElectronChain {
 + '      <div class="ctitle">48h EPEX Preisprognose</div>\n'
 + '      <div style="display:flex;align-items:flex-end;gap:1px;height:120px;padding:0 2px">' + forecastBars + '</div>\n'
 + '      <div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--t2);margin-top:3px"><span>Jetzt</span><span>+12h</span><span>+24h</span><span>+36h</span><span>+48h</span></div>\n'
++ '    </div>\n'
++ '    <div class="card c4">\n'
++ '      <div class="ctitle">Redispatch 3.0</div>\n'
++ '      <div class="info-grid">\n'
++ '        <div class="info-item"><div class="info-lbl">Verfahren</div><div class="info-val">Pay-as-Bid (MOL)</div></div>\n'
++ '        <div class="info-item"><div class="info-lbl">Gateway</div><div class="info-val" style="color:' + (this.config.redispatch_gateway_url ? 'var(--grn)' : 'var(--yel)') + '">' + (this.config.redispatch_gateway_url ? 'Aktiv' : 'Simulation') + '</div></div>\n'
++ '        <div class="info-item"><div class="info-lbl">Aggregation</div><div class="info-val" id="rd-agg">' + (rdAgg ? rdAgg.netFlexKw.toFixed(1) + ' kW (' + rdAgg.status + ')' : '-') + '</div></div>\n'
++ '        <div class="info-item"><div class="info-lbl">Abrufe (6 Slots)</div><div class="info-val" id="rd-abrufe" style="color:' + (rdCalledCount > 0 ? 'var(--grn)' : 'var(--t1)') + '">' + rdCalledCount + ' / ' + rdHist.length + '</div></div>\n'
++ '        <div class="info-item"><div class="info-lbl">Min. Flex</div><div class="info-val">' + (this.config.redispatch_min_flex_kw || 1.0) + ' kW</div></div>\n'
++ '        <div class="info-item"><div class="info-lbl">Bilanzierung</div><div class="info-val">Planwertmodell</div></div>\n'
++ '      </div>\n'
 + '    </div>\n'
 + '    <div class="card c4">\n'
 + '      <div class="ctitle">Blockchain Identity</div>\n'
@@ -2707,19 +3328,19 @@ class TheElectronChain {
 + '    <div class="card c4" style="text-align:center">\n'
 + '      <div class="ctitle">Naechster 15-Min Slot</div>\n'
 + '      <div class="slot-card">\n'
-+ '        <div class="slot-label">Uniform Price Auction</div>\n'
++ '        <div class="slot-label">Pay-as-Bid (MOL)</div>\n'
 + '        <div class="slot-time">' + nextLabel + '</div>\n'
 + '        <div style="margin-top:6px;font-size:.7rem;color:var(--t1)">' + offers.length + ' Angebote &middot; ' + demands.length + ' Nachfrage</div>\n'
 + '      </div>\n'
 + '      <div style="margin-top:12px;text-align:left">\n'
-+ '        <div class="dim" style="margin-bottom:6px">EFDM v1.1 Lifecycle</div>\n'
++ '        <div class="dim" style="margin-bottom:6px">RD3.0 Slot-Lifecycle</div>\n'
 + '        <div style="font-size:.65rem;color:var(--t1);line-height:1.8">\n'
-+ '          T-5min: FlexSpace Refresh<br>\n'
-+ '          T-4min: Bid Collection<br>\n'
-+ '          T-2min: Community Clearing<br>\n'
-+ '          T-1min: FLMP Creation<br>\n'
-+ '          T+0: Execution<br>\n'
-+ '          T+15: FLMAP + Settlement\n'
++ '          T-5min: RDV-Meldung Refresh<br>\n'
++ '          T-4min: Gebotssammlung (MOL)<br>\n'
++ '          T-2min: Aggregation &rarr; Gateway<br>\n'
++ '          T-1min: P2P-Clearing (Residual)<br>\n'
++ '          T+0: Abruf &amp; Fahrplan<br>\n'
++ '          T+15: Abrechnung (Planwert)\n'
 + '        </div>\n'
 + '      </div>\n'
 + '    </div>\n'
@@ -2741,7 +3362,7 @@ class TheElectronChain {
 + '      <div class="scroll-y"><table><thead><tr><th>Slot</th><th>Clearing ct/kWh</th><th>Pairs</th><th>Volume kWh</th><th>Unmatched (O/D)</th></tr></thead><tbody>' + histRows + '</tbody></table></div>\n'
 + '    </div>\n'
 + '  </div>\n'
-+ '  <footer>TheElectronChain v4.0.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/settlement">Settlement</a> &middot; <a href="/api/flex/clearing">Clearing API</a></footer>\n'
++ '  <footer>TheElectronChain v4.1.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/settlement">Settlement</a> &middot; <a href="/api/flex/clearing">Clearing API</a></footer>\n'
 + '</div>\n';
 
     return this._darkShell('/flex', 'Flex-Markt', body, '');
@@ -2800,11 +3421,28 @@ class TheElectronChain {
       + '  m.addTo(map);\n'
       + '});\n';
 
+    const rdvAgg = this.redispatchAggregator?.getForSlot(this.slotScheduler.getCurrentSlotKey());
+    const offerNodes = allNodes.filter(n => n.canOffer).length;
+    const demandNodes = allNodes.filter(n => n.needsDemand).length;
+
     var body = ''
 + '<div style="margin-top:12px">\n'
 + '  <div class="grid">\n'
-+ '    <div class="card c12">\n'
-+ '      <div class="ctitle">MaLo Netzwerk Koeln &middot; ' + ns.total + ' Marktlokationen &middot; 9 Stadtbezirke</div>\n'
++ '    <div class="card c3">\n'
++ '      <div class="ctitle">RDV Pool-Aggregation</div>\n'
++ '      <div style="text-align:center">\n'
++ '        <div class="big-num" style="color:var(--cyan)">' + ns.totalFlexKw.toFixed(1) + '</div>\n'
++ '        <div class="unit">kW RDV gesamt</div>\n'
++ '      </div>\n'
++ '      <div style="margin-top:8px;font-size:.68rem;color:var(--t1)">\n'
++ '        <div style="display:flex;justify-content:space-between"><span>Angebot (positiv)</span><span style="color:var(--grn)">' + offerNodes + ' MaLos</span></div>\n'
++ '        <div style="display:flex;justify-content:space-between"><span>Nachfrage (negativ)</span><span style="color:var(--red)">' + demandNodes + ' MaLos</span></div>\n'
++ '        <div style="display:flex;justify-content:space-between;margin-top:4px"><span>Aggregation</span><span>' + (rdvAgg ? rdvAgg.status : 'pending') + '</span></div>\n'
++ '        <div style="display:flex;justify-content:space-between"><span>Netto-Flex</span><span style="color:var(--cyan)">' + (rdvAgg ? rdvAgg.netFlexKw.toFixed(1) : ns.totalFlexKw.toFixed(1)) + ' kW</span></div>\n'
++ '      </div>\n'
++ '    </div>\n'
++ '    <div class="card c9">\n'
++ '      <div class="ctitle">MaLo Netzwerk K&ouml;ln &middot; ' + ns.total + ' Marktlokationen &middot; 9 Stadtbezirke</div>\n'
 + '      <div id="nw-map" style="height:400px;border-radius:6px;border:1px solid var(--bdr)"></div>\n'
 + '    </div>\n'
 + '    <div class="card c12">\n'
@@ -2816,7 +3454,7 @@ class TheElectronChain {
 + '      </div>\n'
 + '    </div>\n'
 + '  </div>\n'
-+ '  <footer>TheElectronChain v4.0.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/api/malos">MaLo API</a></footer>\n'
++ '  <footer>TheElectronChain v4.1.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/api/malos">MaLo API</a></footer>\n'
 + '</div>\n';
 
     return this._darkShell('/netzwerk', 'Netzwerk', body,
@@ -2832,6 +3470,18 @@ class TheElectronChain {
     const stl = this.settlementEngine?.getSummary() || {};
     const hist = this.settlementEngine?.getHistory(24) || [];
     const gridSchedule = this.dynamicGridFee.getSchedule(24);
+
+    const rdHist = this.redispatchAggregator?.getHistory(24) || [];
+    const rdRows = rdHist.filter(a => a.redispatchCalled).map(function(a) {
+      return '<tr>'
+        + '<td style="color:var(--cyan)">' + (a.slotStart ? a.slotStart.slice(11, 16) : '-') + '</td>'
+        + '<td>' + (a.netFlexKw || 0).toFixed(1) + '</td>'
+        + '<td>' + (a.redispatchVolume || 0).toFixed(1) + '</td>'
+        + '<td>' + ((a.redispatchPrice || 0) * 100).toFixed(1) + '</td>'
+        + '<td>' + (a.maloIds?.length || 0) + '</td>'
+        + '<td><span class="badge badge-grn">Abgerufen</span></td>'
+        + '</tr>';
+    }).join('') || '<tr><td colspan="6" class="dim" style="text-align:center;padding:12px">Keine Redispatch-Abrufe</td></tr>';
 
     const stlRows = hist.map(function(s) {
       return '<tr>'
@@ -2858,25 +3508,29 @@ class TheElectronChain {
 + '<div style="margin-top:12px">\n'
 + '  <div class="grid">\n'
 + '    <div class="card c3" style="text-align:center">\n'
-+ '      <div class="ctitle">Settlement Summary</div>\n'
++ '      <div class="ctitle">Abrechnung (Planwertmodell)</div>\n'
 + '      <div class="big-num" style="color:var(--cyan)">' + (stl.totalSettledEur || 0).toFixed(2) + '</div>\n'
-+ '      <div class="unit">EUR total settled</div>\n'
++ '      <div class="unit">EUR Verg&uuml;tung gesamt</div>\n'
 + '      <div style="margin-top:8px;font-size:.7rem;color:var(--t1)">\n'
-+ '        ' + (stl.totalSettlements || 0) + ' settlements<br>\n'
-+ '        ' + (stl.totalSettledKwh || 0).toFixed(2) + ' kWh traded<br>\n'
-+ '        Avg: ' + ((stl.avgClearingPrice || 0) * 100).toFixed(1) + ' ct/kWh\n'
++ '        ' + (stl.totalSettlements || 0) + ' Abrechnungen<br>\n'
++ '        ' + (stl.totalSettledKwh || 0).toFixed(2) + ' kWh gehandelt<br>\n'
++ '        &empty; ' + ((stl.avgClearingPrice || 0) * 100).toFixed(1) + ' ct/kWh (Pay-as-Bid)\n'
 + '      </div>\n'
 + '    </div>\n'
 + '    <div class="card c9">\n'
-+ '      <div class="ctitle">Settlement History (on-chain Peaq)</div>\n'
-+ '      <div class="scroll-y"><table><thead><tr><th>Slot</th><th>Clearing ct</th><th>kWh</th><th>EUR</th><th>Pairs</th><th>Status</th><th>ID</th></tr></thead><tbody>' + stlRows + '</tbody></table></div>\n'
++ '      <div class="ctitle">Abrechnungshistorie (Peaq On-Chain)</div>\n'
++ '      <div class="scroll-y"><table><thead><tr><th>Slot</th><th>Preis ct</th><th>kWh</th><th>EUR</th><th>Abrufe</th><th>Status</th><th>ID</th></tr></thead><tbody>' + stlRows + '</tbody></table></div>\n'
 + '    </div>\n'
 + '    <div class="card c12">\n'
-+ '      <div class="ctitle">AgNes Netzentgelte &middot; Dynamische Grid Fees (15-min Granularitaet)</div>\n'
++ '      <div class="ctitle">Redispatch 3.0 Abrufhistorie (Zentral)</div>\n'
++ '      <div class="scroll-y" style="max-height:300px"><table><thead><tr><th>Slot</th><th>Aggreg. kW</th><th>Abruf kW</th><th>Preis ct</th><th>MaLos</th><th>Status</th></tr></thead><tbody>' + rdRows + '</tbody></table></div>\n'
++ '    </div>\n'
++ '    <div class="card c12">\n'
++ '      <div class="ctitle">AgNes Netzentgelte &middot; Dynamische Grid Fees (15-min Granularit&auml;t)</div>\n'
 + '      <div class="scroll-y" style="max-height:400px"><table><thead><tr><th>Zeit</th><th>Fee ct/kWh</th><th>Tier</th></tr></thead><tbody>' + feeRows + '</tbody></table></div>\n'
 + '    </div>\n'
 + '  </div>\n'
-+ '  <footer>TheElectronChain v4.0.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/api/flex/settlement">Settlement API</a></footer>\n'
++ '  <footer>TheElectronChain v4.1.0 &middot; <a href="/">Dashboard</a> &middot; <a href="/flex">Flex-Markt</a> &middot; <a href="/api/flex/settlement">Settlement API</a></footer>\n'
 + '</div>\n';
 
     return this._darkShell('/settlement', 'Settlement', body, '');

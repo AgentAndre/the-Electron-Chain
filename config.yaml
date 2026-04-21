@@ -31,9 +31,16 @@ options:
 
   # Community Flexibility Market (Redispatch 3.0)
   community_flex_enabled: true
-  clearing_mode: "uniform_price"
+  clearing_mode: "pay_as_bid"
   min_flex_bid_kw: 0.1
   settlement_penalty_pct: 10
+
+  # Redispatch 3.0 Gateway — aggregated flex submission
+  # If gateway_url is set, aggregated flex is submitted to central service.
+  # If not called for redispatch, P2P clearing between MALOs/SMGWs follows.
+  redispatch_enabled: true
+  redispatch_gateway_url: ""
+  redispatch_min_flex_kw: 1.0
 
   # ===== Local MaLo Node (one per HA instance) =====
   node_name: "My MaLo"
@@ -109,6 +116,10 @@ schema:
   clearing_mode: list(uniform_price|pay_as_bid)?
   min_flex_bid_kw: float(0.01,10.0)?
   settlement_penalty_pct: int(0,50)?
+
+  redispatch_enabled: bool?
+  redispatch_gateway_url: str?
+  redispatch_min_flex_kw: float(0.1,100.0)?
 
   # Local node
   node_name: str?
