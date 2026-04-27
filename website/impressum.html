@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum — The Electron Chain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1520;
+    --surface: #111a28;
+    --border: #1e3050;
+    --electron: #00d4ff;
+    --electron-dim: #0066aa;
+    --amber: #f59e0b;
+    --green: #22c55e;
+    --text: #e2eaf5;
+    --text-muted: #6b8aaa;
+    --text-dim: #344a66;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(8,12,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+
+  nav .brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  nav .brand span { color: var(--electron); }
+
+  nav a.back {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--electron-dim);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+  }
+
+  nav a.back:hover { color: var(--electron); }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--electron);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .tag::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--electron);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 48px;
+  }
+
+  h1 span { color: var(--electron); }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin: 48px 0 16px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  p, li {
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  strong { color: var(--text); font-weight: 500; }
+
+  a { color: var(--electron-dim); text-decoration: none; border-bottom: 1px dotted var(--electron-dim); }
+  a:hover { color: var(--electron); border-bottom-color: var(--electron); }
+
+  .meta-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px 28px;
+    margin: 16px 0 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.9;
+    color: var(--text);
+  }
+
+  .meta-block .label {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  footer a {
+    color: var(--electron-dim);
+    text-decoration: none;
+    border: none;
+  }
+  footer a:hover { color: var(--electron); }
+
+  footer .links { display: flex; gap: 24px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⚡ THE ELECTRON <span>CHAIN</span></a>
+  <a href="index.html" class="back">← zurück zur Startseite</a>
+</nav>
+
+<main>
+  <div class="tag">Rechtliches</div>
+  <h1>Impressum<span>.</span></h1>
+
+  <p>Angaben gemäß § 5 TMG sowie § 18 Abs. 2 MStV.</p>
+
+  <h2>Diensteanbieter</h2>
+  <div class="meta-block">
+    <div><span class="label">Name</span><br>André Hoffmann</div>
+    <br>
+    <div><span class="label">Anschrift</span><br>
+      [Straße und Hausnummer]<br>
+      [PLZ Ort]<br>
+      Deutschland
+    </div>
+  </div>
+
+  <h2>Kontakt</h2>
+  <div class="meta-block">
+    <div><span class="label">E-Mail</span><br>
+      <a href="mailto:andre-hoffmann@posteo.de">andre-hoffmann@posteo.de</a>
+    </div>
+    <br>
+    <div><span class="label">Projekt-Repository</span><br>
+      <a href="https://github.com/AgentAndre/the-Electron-Chain" target="_blank" rel="noopener">github.com/AgentAndre/the-Electron-Chain</a>
+    </div>
+  </div>
+
+  <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+  <p>André Hoffmann, Anschrift wie oben.</p>
+
+  <h2>Art des Angebots</h2>
+  <p>The Electron Chain ist ein <strong>nicht-kommerzielles Open-Source-Projekt</strong>, veröffentlicht unter der MIT-Lizenz. Diese Webseite dient ausschließlich der Dokumentation und der Information über das Projekt; es werden keine Waren oder Dienstleistungen angeboten und keine Vertragsabschlüsse getätigt.</p>
+
+  <h2>Haftung für Inhalte</h2>
+  <p>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG bin ich als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.</p>
+  <p>Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werde ich diese Inhalte umgehend entfernen.</p>
+
+  <h2>Haftung für Links</h2>
+  <p>Diese Webseite enthält Links zu externen Webseiten Dritter, auf deren Inhalte ich keinen Einfluss habe. Deshalb kann ich für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+
+  <h2>Urheberrecht</h2>
+  <p>Der auf dieser Webseite präsentierte Quellcode des Projekts <strong>The Electron Chain</strong> steht unter der <strong>MIT-Lizenz</strong>. Texte, Grafiken und Diagramme dieser Webseite sind, soweit nicht anders gekennzeichnet, urheberrechtlich geschützt. Eine Verwendung außerhalb der MIT-Lizenz bedarf der vorherigen schriftlichen Zustimmung des Autors.</p>
+
+  <h2>Hinweis nach § 36 VSBG</h2>
+  <p>Ich bin nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
+</main>
+
+<footer>
+  <div>© 2026 The Electron Chain — Open Source, MIT License</div>
+  <div class="links">
+    <a href="index.html">Startseite</a>
+    <a href="https://github.com/AgentAndre/the-Electron-Chain">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

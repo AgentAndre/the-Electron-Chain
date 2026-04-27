@@ -590,8 +590,10 @@
     font-family: 'Space Mono', monospace;
     font-size: 0.78rem;
     color: var(--text-muted);
-    line-height: 2;
+    line-height: 1.5;
     overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
   }
 
   .arch-box .highlight { color: var(--electron); }
@@ -871,7 +873,7 @@
             <div class="node-icon">📡</div>
             <div>
               <div class="node-label">SMGW / Home Assistant HEMS</div>
-              <div class="node-sub" style="color: var(--electron); font-family: 'Space Mono', monospace; font-size: 0.68rem;">ID: DE000123456789 · TLS-Zertifikat</div>
+              <div class="node-sub" style="color: var(--electron); font-family: 'Space Mono', monospace; font-size: 0.68rem;">ID: ETHE1000000001 · TLS-Zertifikat</div>
               <div class="node-sub">Bündelt lokale Flexibilität · signiert Messwerte · erstellt Token</div>
             </div>
             <div class="node-flow" style="color: var(--electron)">Vertrauensanker</div>
@@ -1073,7 +1075,7 @@
   <!-- SMGW-ID block -->
   <rect x="477" y="176" width="276" height="58" rx="2" fill="#050810" stroke="#1e3050" stroke-width="1"/>
   <text x="489" y="191" font-family="Space Mono, monospace" font-size="7.5" fill="#344a66" letter-spacing="1">SMGW-IDENTIFIER</text>
-  <text x="489" y="207" font-family="Space Mono, monospace" font-size="11" fill="#00d4ff" filter="url(#glowF)">DE000123456789</text>
+  <text x="489" y="207" font-family="Space Mono, monospace" font-size="11" fill="#00d4ff" filter="url(#glowF)">ETHE1000000001</text>
   <text x="489" y="221" font-family="Space Mono, monospace" font-size="7" fill="#344a66">MeteringPointID · EIC · OBIS-Kennzahl</text>
   <text x="741" y="221" text-anchor="end" font-family="Space Mono, monospace" font-size="7" fill="#22c55e">✓ MaStR</text>
 
@@ -1439,7 +1441,7 @@
 <span class="c"># In Home Assistant:</span>
 <span class="k">Settings</span> → Add-ons → Add-on Store
 → ⊕ Custom Repository:
-<span class="s">https://github.com/[yourrepo]/tec-hems</span>
+<span class="s">https://github.com/AgentAndre/the-Electron-Chain</span>
 → Install <span class="k">The Electron Chain</span>
       </div>
     </div>
@@ -1525,8 +1527,7 @@
   <div style="display: flex; gap: 24px;">
     <a href="https://github.com/AgentAndre/the-Electron-Chain">GitHub</a>
     <a href="https://github.com/AgentAndre/the-Electron-Chain/blob/main/README.md">README.md</a>
-    <a href="#">Impressum</a>
-    <a href="#">Datenschutz</a>
+    <a href="impressum.html">Impressum</a>
   </div>
   <div style="font-family: 'Space Mono', monospace; font-size: 0.62rem;">
     built with Home Assistant · peaq · §42c EnWG
