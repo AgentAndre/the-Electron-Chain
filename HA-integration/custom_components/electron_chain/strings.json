@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Electron Chain – Energy Sharing",
+        "description": "Connect this Home Assistant to a §42c cooperative on the peaq blockchain.",
+        "data": {
+          "household_id": "Household ID",
+          "cooperative_id": "Cooperative ID",
+          "rpc_url": "peaq RPC URL",
+          "hub_url": "ELP-Hub MQTT URL",
+          "hub_api_url": "ELP-Hub HTTP API URL",
+          "wallet_seed": "Wallet seed (sr25519 mnemonic)",
+          "did": "DID (auto-generated if empty)"
+        }
+      },
+      "adapter_pick": {
+        "title": "Choose your battery / solar device",
+        "description": "Select the device adapter. Items marked '✓ detected' have compatible HA entities already present.",
+        "data": {
+          "adapter_vendor": "Device adapter"
+        }
+      },
+      "adapter_bind": {
+        "title": "Confirm entity bindings — {model}",
+        "description": "Pinned entities for the {vendor} adapter ({n_detected} auto-detected). Adjust if needed; leave empty fields blank.",
+        "data": {
+          "pv": "PV power sensor",
+          "battery_soc": "Battery state-of-charge sensor",
+          "battery_power": "Battery power sensor (+ charging / − discharging)",
+          "grid_export": "Grid power sensor (+ export / − import)",
+          "home_load": "Home load sensor (optional)"
+        }
+      }
+    },
+    "error": {
+      "required": "Required field"
+    },
+    "abort": {
+      "already_configured": "This household is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit entity bindings",
+        "data": {
+          "pv": "PV power sensor",
+          "battery_soc": "Battery state-of-charge sensor",
+          "battery_power": "Battery power sensor",
+          "grid_export": "Grid power sensor",
+          "home_load": "Home load sensor"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": { "name": "Status" },
+      "surplus": { "name": "Net surplus" },
+      "pv_power": { "name": "PV power" },
+      "battery_soc": { "name": "Battery SoC" },
+      "offer_id": { "name": "Current offer ID" },
+      "offer_price": { "name": "Offer price" },
+      "traded_kwh_today": { "name": "Traded today" },
+      "revenue_today": { "name": "Revenue today" },
+      "did": { "name": "DID" },
+      "adapter": { "name": "Active adapter" },
+      "chain_block": { "name": "Chain block" }
+    },
+    "switch": {
+      "trading_enabled": { "name": "Trading enabled" }
+    }
+  }
+}

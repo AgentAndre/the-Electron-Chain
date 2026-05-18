@@ -1,0 +1,20 @@
+{
+  "domain": "electron_chain",
+  "name": "Electron Chain – Energy Sharing (§42c)",
+  "version": "0.2.0",
+  "documentation": "https://github.com/heutestadtmorgen/electron-chain",
+  "issue_tracker": "https://github.com/heutestadtmorgen/electron-chain/issues",
+  "codeowners": ["@heutestadtmorgen"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "requirements": [
+    "substrate-interface==1.7.10",
+    "py-sr25519-bindings==0.2.0",
+    "websockets>=12.0,<14.0",
+    "aiomqtt==2.3.0"
+  ],
+  "dependencies": ["mqtt"],
+  "after_dependencies": [],
+  "loggers": ["electron_chain", "substrateinterface"]
+}

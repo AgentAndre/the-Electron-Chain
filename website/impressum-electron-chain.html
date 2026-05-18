@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum – The Electron Chain</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111820;
+    --border: #1e2d3d;
+    --accent: #00e5a0;
+    --accent-dim: rgba(0,229,160,0.1);
+    --text: #c9d1d9;
+    --text-muted: #57697a;
+    --heading: #e6edf3;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 60px 24px;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .site-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 56px;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .site-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Page title */
+  .page-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--heading);
+    letter-spacing: -0.5px;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .info-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+
+  .info-block p {
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .info-block strong {
+    color: var(--heading);
+    font-weight: 500;
+  }
+
+  .placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  /* Contact row */
+  .contact-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .contact-row:last-child {
+    border-bottom: none;
+  }
+
+  .contact-key {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 100px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .contact-val {
+    color: var(--text);
+  }
+
+  .contact-val a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .contact-val a:hover {
+    text-decoration: underline;
+  }
+
+  /* Notice box */
+  .notice {
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: #7ecfb0;
+    line-height: 1.6;
+  }
+
+  .notice strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Prose */
+  .prose {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.75;
+  }
+
+  .prose p + p {
+    margin-top: 12px;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    color: var(--accent);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .contact-row { flex-direction: column; gap: 4px; }
+    .contact-key { width: auto; }
+    footer { flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+    </div>
+    <span class="site-name">The Electron Chain</span>
+  </header>
+
+  <!-- Title -->
+  <p class="page-title">Legal</p>
+  <h1>Impressum</h1>
+
+  <!-- Angaben gem. § 5 DDG -->
+  <div class="section">
+    <div class="section-label">Angaben gem. § 5 DDG</div>
+    <div class="info-block">
+      <div class="contact-row">
+        <span class="contact-key">Name</span>
+        <span class="contact-val"><strong>Dr. André Hoffmann</strong></span>
+      </div>
+      <div class="contact-row">
+        <span class="contact-key">Anschrift</span>
+        <span class="contact-val">
+          <span class="placeholder">[Straße und Hausnummer]</span><br>
+          <span class="placeholder">[PLZ und Ort]</span><br>
+          Deutschland
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kontakt -->
+  <div class="section">
+    <div class="section-label">Kontakt</div>
+    <div class="info-block">
+      <div class="contact-row">
+        <span class="contact-key">E-Mail</span>
+        <span class="contact-val">
+          <a href="mailto:contact@electron-chain.io"><span class="placeholder">[E-Mail-Adresse eintragen]</span></a>
+        </span>
+      </div>
+      <div class="contact-row">
+        <span class="contact-key">Webseite</span>
+        <span class="contact-val">
+          <a href="https://electron-chain.io">electron-chain.io</a>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projektcharakter -->
+  <div class="section">
+    <div class="section-label">Projektcharakter</div>
+    <div class="notice">
+      <strong>Open-Source-Forschungsprojekt.</strong> The Electron Chain ist ein nicht-kommerzielles, quelloffenes Forschungsprojekt zur dezentralen Energieteilung nach § 42c EnWG auf Basis des peaq-Netzwerks. Es besteht kein Gewinnerzielungsinteresse. Der Quellcode steht unter einer Open-Source-Lizenz frei zur Verfügung.
+    </div>
+  </div>
+
+  <!-- Haftungsausschluss -->
+  <div class="section">
+    <div class="section-label">Haftungsausschluss</div>
+    <div class="prose">
+      <p><strong style="color: var(--heading); font-weight: 500;">Haftung für Inhalte:</strong> Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.</p>
+      <p><strong style="color: var(--heading); font-weight: 500;">Haftung für Links:</strong> Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+      <p><strong style="color: var(--heading); font-weight: 500;">Software ohne Garantie:</strong> Die Software wird „wie besehen" bereitgestellt, ohne ausdrückliche oder stillschweigende Garantien jeglicher Art. Die Nutzung erfolgt auf eigenes Risiko. Für Schäden, die durch die Nutzung der Software entstehen, wird keine Haftung übernommen.</p>
+    </div>
+  </div>
+
+  <!-- Urheberrecht -->
+  <div class="section">
+    <div class="section-label">Urheberrecht &amp; Lizenz</div>
+    <div class="prose">
+      <p>Der Quellcode dieses Projekts steht unter der <strong style="color: var(--heading); font-weight: 500;"><span class="placeholder">[Lizenz eintragen, z. B. MIT License / Apache 2.0]</span></strong> und kann auf <a href="https://github.com/electron-chain" style="color: var(--accent); text-decoration: none;">GitHub</a> eingesehen werden. Texte, Grafiken und sonstige Inhalte dieser Webseite unterliegen dem deutschen Urheberrecht.</p>
+    </div>
+  </div>
+
+  <!-- Streitbeilegung -->
+  <div class="section">
+    <div class="section-label">Online-Streitbeilegung</div>
+    <div class="prose">
+      <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr" style="color: var(--accent); text-decoration: none;">https://ec.europa.eu/consumers/odr</a>. Da es sich um ein nicht-kommerzielles Projekt handelt, besteht keine Verpflichtung zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle.</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span>© 2025 Dr. André Hoffmann &middot; The Electron Chain</span>
+    <a href="/">← Zurück zur Startseite</a>
+  </footer>
+
+</div>
+</body>
+</html>

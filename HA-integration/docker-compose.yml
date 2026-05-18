@@ -1,0 +1,137 @@
+# Electron Chain test fleet — 10 HA Core instances + ELP-Hub + Dashboard + MQTT.
+# v0.2.0: Hub now exposes FastAPI on :8000 with WebSocket dashboard.
+#
+# Quickstart:
+#   ./scripts/bootstrap-fleet.sh 10
+#   docker compose up -d
+#   open http://localhost:8000          # Cooperative dashboard
+#   open http://localhost:8101 ... 8110  # individual HA instances
+#
+# Resource sizing (rough): 10×300MB HA + Hub ~80MB + MQTT ~50MB ≈ 3.3 GB RAM.
+# Scales to 100 instances with same compose template (just generate more services).
+
+x-ha-base: &ha-base
+  image: ghcr.io/home-assistant/home-assistant:stable
+  restart: unless-stopped
+  environment:
+    TZ: Europe/Berlin
+  depends_on:
+    - mqtt
+    - elp-hub
+
+services:
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: elp-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
+
+  elp-hub:
+    build: ./elp-hub
+    container_name: elp-hub
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # FastAPI + WebSocket + dashboard
+    volumes:
+      - hub-data:/data
+      - ./dashboard:/app/dashboard:ro
+    environment:
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      COOP_ID: heutestadtmorgen
+      MATCH_INTERVAL_SEC: "15"
+      LOG_LEVEL: INFO
+      ELP_DB_PATH: /data/elp.sqlite
+      DASHBOARD_DIR: /app/dashboard
+      HUB_API_PORT: "8000"
+    depends_on:
+      - mqtt
+
+  ha-1:
+    <<: *ha-base
+    container_name: ha-1
+    ports: ["8101:8123"]
+    volumes:
+      - ./docker/configs/ha-1:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-2:
+    <<: *ha-base
+    container_name: ha-2
+    ports: ["8102:8123"]
+    volumes:
+      - ./docker/configs/ha-2:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-3:
+    <<: *ha-base
+    container_name: ha-3
+    ports: ["8103:8123"]
+    volumes:
+      - ./docker/configs/ha-3:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-4:
+    <<: *ha-base
+    container_name: ha-4
+    ports: ["8104:8123"]
+    volumes:
+      - ./docker/configs/ha-4:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-5:
+    <<: *ha-base
+    container_name: ha-5
+    ports: ["8105:8123"]
+    volumes:
+      - ./docker/configs/ha-5:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-6:
+    <<: *ha-base
+    container_name: ha-6
+    ports: ["8106:8123"]
+    volumes:
+      - ./docker/configs/ha-6:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-7:
+    <<: *ha-base
+    container_name: ha-7
+    ports: ["8107:8123"]
+    volumes:
+      - ./docker/configs/ha-7:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-8:
+    <<: *ha-base
+    container_name: ha-8
+    ports: ["8108:8123"]
+    volumes:
+      - ./docker/configs/ha-8:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-9:
+    <<: *ha-base
+    container_name: ha-9
+    ports: ["8109:8123"]
+    volumes:
+      - ./docker/configs/ha-9:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+  ha-10:
+    <<: *ha-base
+    container_name: ha-10
+    ports: ["8110:8123"]
+    volumes:
+      - ./docker/configs/ha-10:/config
+      - ./custom_components/electron_chain:/config/custom_components/electron_chain:ro
+
+volumes:
+  mqtt-data:
+  hub-data:

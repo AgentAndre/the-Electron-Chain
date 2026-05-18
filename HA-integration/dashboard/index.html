@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ELP · Cooperative Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <span class="brand"><span class="brand__mark"></span>ELP&nbsp;<span class="brand__sub">/ COOPERATIVE COCKPIT</span></span>
+    <span class="coop-name" id="coop-name">heute stadt morgen eG</span>
+  </div>
+  <div class="topbar__right">
+    <span class="ticker" id="grid-price">— ct/kWh</span>
+    <span class="ticker ticker--block" id="chain-block">block —</span>
+    <span class="status status--live" id="ws-status"><span class="dot"></span>LIVE</span>
+  </div>
+</header>
+
+<section class="kpis">
+  <div class="kpi">
+    <div class="kpi__label">ACTIVE HOUSEHOLDS</div>
+    <div class="kpi__value" id="kpi-active">—<span class="kpi__total" id="kpi-total">/—</span></div>
+    <div class="kpi__hint">heartbeats &lt; 90 s</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">NET SURPLUS</div>
+    <div class="kpi__value" id="kpi-surplus">— <span class="kpi__unit">kW</span></div>
+    <div class="kpi__hint" id="kpi-pv">PV: — kW</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">TRADED TODAY</div>
+    <div class="kpi__value" id="kpi-kwh">— <span class="kpi__unit">kWh</span></div>
+    <div class="kpi__hint" id="kpi-revenue">— € revenue</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">OPEN OFFERS</div>
+    <div class="kpi__value" id="kpi-offers">—</div>
+    <div class="kpi__hint" id="kpi-open-kwh">— kWh in book</div>
+  </div>
+</section>
+
+<main class="main">
+
+  <section class="panel panel--chart">
+    <div class="panel__head">
+      <h2>FLEET POWER · LAST 60 MIN</h2>
+      <span class="panel__sub" id="chart-legend">surplus · pv · clearing price</span>
+    </div>
+    <canvas id="chart" width="800" height="260"></canvas>
+  </section>
+
+  <section class="panel panel--households">
+    <div class="panel__head">
+      <h2>HOUSEHOLDS</h2>
+      <input class="filter" id="hh-filter" placeholder="filter id, vendor…" />
+    </div>
+    <div class="hh-grid-scroll" id="hh-scroll">
+      <div class="hh-grid" id="hh-grid"></div>
+    </div>
+  </section>
+
+  <section class="panel panel--book">
+    <div class="panel__head"><h2>ORDER BOOK</h2><span class="panel__sub">top 15 · ascending price</span></div>
+    <div class="book" id="book"></div>
+  </section>
+
+  <section class="panel panel--matches">
+    <div class="panel__head"><h2>MATCH STREAM</h2><span class="panel__sub" id="match-rate">— /min</span></div>
+    <div class="matches" id="matches"></div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span>peaq Agung Testnet · Mosquitto · ELP-Hub v0.2</span>
+  <span id="last-update">never</span>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

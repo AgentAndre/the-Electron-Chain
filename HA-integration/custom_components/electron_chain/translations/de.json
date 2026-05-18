@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Electron Chain – Energy Sharing",
+        "description": "Verbindet diese Home Assistant Instanz mit einer §42c-Genossenschaft auf der peaq Blockchain.",
+        "data": {
+          "household_id": "Haushalts-ID",
+          "cooperative_id": "Genossenschafts-ID",
+          "rpc_url": "peaq RPC URL",
+          "hub_url": "ELP-Hub MQTT URL",
+          "hub_api_url": "ELP-Hub HTTP API URL",
+          "wallet_seed": "Wallet Seed (sr25519 Mnemonic)",
+          "did": "DID (wird automatisch erzeugt, falls leer)"
+        }
+      },
+      "adapter_pick": {
+        "title": "Batterie- / Solar-Gerät auswählen",
+        "description": "Wähle den Geräte-Adapter. Einträge mit „✓ erkannt“ haben kompatible HA-Entitäten in dieser Instanz.",
+        "data": {
+          "adapter_vendor": "Geräte-Adapter"
+        }
+      },
+      "adapter_bind": {
+        "title": "Entitäts-Zuordnung bestätigen — {model}",
+        "description": "Vorgeschlagene Entitäten für den {vendor}-Adapter ({n_detected} automatisch erkannt). Anpassen falls nötig; Felder können leer bleiben.",
+        "data": {
+          "pv": "PV-Leistungs-Sensor",
+          "battery_soc": "Batterie-SoC-Sensor",
+          "battery_power": "Batterie-Leistung (+ laden / − entladen)",
+          "grid_export": "Netz-Leistung (+ Einspeisung / − Bezug)",
+          "home_load": "Hauslast-Sensor (optional)"
+        }
+      }
+    },
+    "error": {
+      "required": "Pflichtfeld"
+    },
+    "abort": {
+      "already_configured": "Dieser Haushalt ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Entitäts-Zuordnung bearbeiten",
+        "data": {
+          "pv": "PV-Leistungs-Sensor",
+          "battery_soc": "Batterie-SoC-Sensor",
+          "battery_power": "Batterie-Leistungs-Sensor",
+          "grid_export": "Netz-Leistungs-Sensor",
+          "home_load": "Hauslast-Sensor"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": { "name": "Status" },
+      "surplus": { "name": "Netto-Überschuss" },
+      "pv_power": { "name": "PV-Leistung" },
+      "battery_soc": { "name": "Batterie-SoC" },
+      "offer_id": { "name": "Aktuelle Angebots-ID" },
+      "offer_price": { "name": "Angebotspreis" },
+      "traded_kwh_today": { "name": "Heute gehandelt" },
+      "revenue_today": { "name": "Erlös heute" },
+      "did": { "name": "DID" },
+      "adapter": { "name": "Aktiver Adapter" },
+      "chain_block": { "name": "Chain-Block" }
+    },
+    "switch": {
+      "trading_enabled": { "name": "Handel aktiv" }
+    }
+  }
+}
