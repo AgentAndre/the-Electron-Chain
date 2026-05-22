@@ -1,52 +1,54 @@
-# Build argument for multi-architecture support
+# Build argument for multi-architecture support (HA Supervisor sets this).
 ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:3.19
 FROM ${BUILD_FROM}
 
-# Set shell for pipefail
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install system dependencies
-# Node.js 18+ is required for @peaq-network/sdk
-# Python3 and build tools needed for native npm packages
+# Python 3.11 (Alpine 3.19 default), build deps for cryptography/aiosqlite,
+# curl for the healthcheck, dos2unix as a CRLF safety net for Windows builds.
 RUN apk add --no-cache \
-    nodejs>=18 \
-    npm \
-    python3 \
-    py3-pip \
-    make \
-    g++ \
-    git \
-    curl \
-    dos2unix
+        python3 \
+        py3-pip \
+        ca-certificates \
+        curl \
+        tzdata \
+        dos2unix \
+    && apk add --no-cache --virtual .build-deps \
+        gcc \
+        musl-dev \
+        python3-dev \
+        libffi-dev \
+        openssl-dev \
+        cargo \
+        rust
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json first (for Docker layer caching)
-COPY package.json ./
+# Pinned runtime deps. cryptography is the heavy one — its wheels carry
+# OpenSSL bindings used by the Fernet wallet vault.
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+        aiomqtt==2.3.0 \
+        aiosqlite==0.20.0 \
+        fastapi==0.115.5 \
+        uvicorn[standard]==0.32.1 \
+        pydantic==2.10.3 \
+        cryptography==43.0.3 \
+    && apk del .build-deps
 
-# IMPORTANT: Use 'npm install' instead of 'npm ci'
-# npm ci requires package-lock.json which we don't have
-# --omit=dev replaces deprecated --production flag
-# --no-optional skips optional deps that may fail on ARM
-RUN npm install --omit=dev --no-optional && \
-    npm cache clean --force
-
-# Copy application files
+# Copy addon payload (Python hub + dashboard + run.sh).
 COPY rootfs /
 
-# Strip Windows CRLF line endings (safety net for Windows-built images) and make executable
-RUN dos2unix /run.sh && \
-    chmod a+x /run.sh && \
-    chmod a+x /app/*.js 2>/dev/null || true
+RUN dos2unix /run.sh && chmod a+x /run.sh
 
-# Set production environment
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=256"
+ENV ELP_DB_PATH=/data/elp.sqlite \
+    DASHBOARD_DIR=/app/dashboard \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Health check - verify web UI is responding
+# Hub HTTP + WebSocket (dashboard, REST, vault) and dashboard static files.
+EXPOSE 8099
+
 HEALTHCHECK --interval=60s --timeout=15s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:8099/api/health || exit 1
 
-# Start the application
-CMD [ "/run.sh" ]
+CMD ["/run.sh"]

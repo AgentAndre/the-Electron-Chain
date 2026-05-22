@@ -1,8 +1,8 @@
 name: "TheElectronChain"
-version: "4.1.0"
+version: "5.0.0"
 slug: "the_electron_chain"
-description: "Decentralized MaLo Node — Local Flexibility Market via Peaq Blockchain"
-url: "https://github.com/peaqnetwork"
+description: "ELP-Hub: order book, matching engine, persistence & cooperative cockpit for §42c MaLo communities on the peaq blockchain"
+url: "https://github.com/heutestadtmorgen/electron-chain"
 arch:
   - armhf
   - armv7
@@ -13,166 +13,46 @@ init: false
 startup: application
 boot: auto
 options:
-  # Peaq Network Settings
-  network_url: "wss://wss-async.agung.peaq.network"
-  network_type: "agung"
-  machine_name: "TheElectronChain"
+  # ===== Cooperative identity =====
+  coop_id: "heutestadtmorgen"
 
-  # Energy Trading Settings
-  enable_trading: true
-  min_sell_price: 0.25
-  max_buy_price: 0.22
-  min_buy_price: 0.02
-  battery_reserve: 20
-  max_feedin_power: 800
+  # ===== MQTT broker (Mosquitto addon by default) =====
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_username: ""
+  mqtt_password: ""
 
-  # AgNes BNetzA — Dynamic Grid Fees (15-min granularity)
-  agnes_enabled: true
+  # ===== Matching engine =====
+  match_interval_sec: 15
+  grid_price_default_ct: 32.0
+  heartbeat_prune_sec: 86400
 
-  # Community Flexibility Market (Redispatch 3.0)
-  community_flex_enabled: true
-  clearing_mode: "pay_as_bid"
-  min_flex_bid_kw: 0.1
-  settlement_penalty_pct: 10
+  # ===== HTTP API / dashboard / WebSocket =====
+  hub_api_port: 8099
 
-  # Redispatch 3.0 Gateway — aggregated flex submission
-  # If gateway_url is set, aggregated flex is submitted to central service.
-  # If not called for redispatch, P2P clearing between MALOs/SMGWs follows.
-  redispatch_enabled: true
-  redispatch_gateway_url: ""
-  redispatch_min_flex_kw: 1.0
-
-  # ===== Local MaLo Node (one per HA instance) =====
-  node_name: "My MaLo"
-  node_lat: 50.9333
-  node_lon: 6.9500
-  node_malo_id: ""
-  node_melo_id: ""
-  node_smgw_id: ""
-  node_address: ""
-  node_pv_tilt: 30
-  node_pv_azimuth: 180
-  node_pv_peak_wp: 2000
-
-  # ===== SMGw HAN Connection (BSI TR-03109 IF-1) =====
-  # Configure if your SMGw is reachable via HAN (e.g. Theben CONEXA, PPC, EMH, Sagemcom)
-  smgw_enabled: false
-  smgw_host: ""
-  smgw_port: 443
-  smgw_protocol: "https"
-  smgw_username: ""
-  smgw_password: ""
-
-  # ===== Optional device integrations =====
-  # Anker Solix 1600 AC (HACS: ha-anker-solix) — leave blank if not used
-  anker_battery_sensor: ""
-  anker_power_sensor: ""
-  anker_output_control: ""
-  anker_ac_charging: ""
-  anker_device_id: ""
-
-  # Zendure Hyper 2000 (HACS: Zendure-HA) — leave blank if not used
-  zendure_battery_sensor: ""
-  zendure_power_sensor: ""
-  zendure_output_control: ""
-  zendure_input_control: ""
-  zendure_ac_mode: ""
-
-  # ===== Peer Discovery (decentralized node mesh via peaq storage) =====
-  # Comma-separated list of peaq wallet addresses of other known nodes.
-  # The local node will read their on-chain metadata and publish its own.
-  discovery_seeds: ""
-  discovery_interval: 600
-
-  # ===== Demo nodes (Köln MaLo fleet for testing/visualization) =====
-  demo_nodes_enabled: true
-  demo_nodes_count: 20
-
-  # EPEX Price Sensor (ha_epex_spot Integration)
-  epex_sensor: "sensor.epex_spot_data_total_price"
-
-  # P2P Trading Settings
-  p2p_trade_amount_wh: 100
-
-  # System Settings
-  update_interval: 300
+  # ===== Runtime =====
   log_level: "info"
   timezone: "Europe/Berlin"
 
 schema:
-  network_url: str
-  network_type: list(agung|krest|peaq)?
-  machine_name: str
-  machine_mnemonic: password?
-  enable_trading: bool
-  min_sell_price: float(0.01,1.0)
-  max_buy_price: float(0.01,1.0)
-  min_buy_price: float(0.01,1.0)?
-  battery_reserve: int(10,50)
-  max_feedin_power: int(100,2400)
-
-  agnes_enabled: bool?
-  community_flex_enabled: bool?
-  clearing_mode: list(uniform_price|pay_as_bid)?
-  min_flex_bid_kw: float(0.01,10.0)?
-  settlement_penalty_pct: int(0,50)?
-
-  redispatch_enabled: bool?
-  redispatch_gateway_url: str?
-  redispatch_min_flex_kw: float(0.1,100.0)?
-
-  # Local node
-  node_name: str?
-  node_lat: float?
-  node_lon: float?
-  node_malo_id: str?
-  node_melo_id: str?
-  node_smgw_id: str?
-  node_address: str?
-  node_pv_tilt: float(0,90)?
-  node_pv_azimuth: float(0,360)?
-  node_pv_peak_wp: int(100,20000)?
-
-  # SMGw HAN
-  smgw_enabled: bool?
-  smgw_host: str?
-  smgw_port: int(1,65535)?
-  smgw_protocol: list(http|https|coap)?
-  smgw_username: str?
-  smgw_password: password?
-
-  # Optional device sensors
-  anker_battery_sensor: str?
-  anker_power_sensor: str?
-  anker_output_control: str?
-  anker_ac_charging: str?
-  anker_device_id: str?
-  zendure_battery_sensor: str?
-  zendure_power_sensor: str?
-  zendure_output_control: str?
-  zendure_input_control: str?
-  zendure_ac_mode: str?
-
-  # Discovery
-  discovery_seeds: str?
-  discovery_interval: int(60,3600)?
-
-  # Demo nodes
-  demo_nodes_enabled: bool?
-  demo_nodes_count: int(0,500)?
-
-  epex_sensor: str?
-  p2p_trade_amount_wh: int(10,1000)?
-  update_interval: int(60,3600)
+  coop_id: str
+  mqtt_host: str
+  mqtt_port: int(1,65535)
+  mqtt_username: str?
+  mqtt_password: password?
+  match_interval_sec: int(5,3600)
+  grid_price_default_ct: float(0.0,200.0)
+  heartbeat_prune_sec: int(3600,2592000)
+  hub_api_port: int(1024,65535)
   log_level: list(debug|info|warning|error)?
   timezone: str?
 
 services:
-  - mqtt:want
+  - mqtt:need
 ports:
   8099/tcp: 8099
 ports_description:
-  8099/tcp: TheElectronChain Dashboard
+  8099/tcp: ELP-Hub HTTP + WebSocket + Cooperative Cockpit
 homeassistant_api: true
 hassio_api: true
 hassio_role: default

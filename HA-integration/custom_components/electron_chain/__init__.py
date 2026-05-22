@@ -10,9 +10,14 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
-from .const import DOMAIN, PLATFORMS
+from .const import (
+    CONF_WALLET_SEED,
+    CONF_WALLET_SEED_ENC,
+    DOMAIN,
+    PLATFORMS,
+)
 from .coordinator import ElectronChainCoordinator
 from .peaq_client import PeaqClient, PeaqConnectionError
 
@@ -21,12 +26,25 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Electron Chain from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
+    domain_data = hass.data.setdefault(DOMAIN, {})
+
+    # Resolve the wallet seed. Three legitimate sources, in this order:
+    #   1. _seeds cache populated by the reauth flow this session
+    #   2. plaintext seed in the entry (legacy, pre-v0.3 config entries)
+    #   3. encrypted blob in the entry — needs a reauth prompt
+    seeds_cache: dict = domain_data.setdefault("_seeds", {})
+    seed: str | None = seeds_cache.get(entry.entry_id)
+    if not seed:
+        seed = entry.data.get(CONF_WALLET_SEED)
+    if not seed and entry.data.get(CONF_WALLET_SEED_ENC):
+        raise ConfigEntryAuthFailed("Wallet seed is encrypted — passphrase required")
+    if not seed:
+        raise ConfigEntryNotReady("No wallet seed available")
 
     # Build the peaq client
     client = PeaqClient(
         rpc_url=entry.data["rpc_url"],
-        wallet_seed=entry.data["wallet_seed"],
+        wallet_seed=seed,
         did=entry.data["did"],
     )
 
@@ -61,7 +79,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        coordinator: ElectronChainCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        domain_data = hass.data[DOMAIN]
+        coordinator: ElectronChainCoordinator = domain_data.pop(entry.entry_id)
+        # Wipe the in-memory plaintext seed so it doesn't survive an unload
+        domain_data.get("_seeds", {}).pop(entry.entry_id, None)
         await coordinator.async_shutdown()
     return unload_ok
 

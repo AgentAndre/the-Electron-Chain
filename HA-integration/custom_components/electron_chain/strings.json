@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Electron Chain – Energy Sharing",
-        "description": "Connect this Home Assistant to a §42c cooperative on the peaq blockchain.",
+        "description": "Connect this Home Assistant to a §42c cooperative on the peaq blockchain. The wallet seed is encrypted at rest with a passphrase you choose.",
         "data": {
           "household_id": "Household ID",
           "cooperative_id": "Cooperative ID",
@@ -11,7 +11,15 @@
           "hub_url": "ELP-Hub MQTT URL",
           "hub_api_url": "ELP-Hub HTTP API URL",
           "wallet_seed": "Wallet seed (sr25519 mnemonic)",
+          "wallet_passphrase": "Wallet passphrase (min 6 chars, never stored)",
           "did": "DID (auto-generated if empty)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Unlock Electron Chain wallet",
+        "description": "Enter the passphrase for {coop} / {household} to decrypt the wallet seed for this session.",
+        "data": {
+          "wallet_passphrase": "Wallet passphrase"
         }
       },
       "adapter_pick": {
@@ -34,10 +42,16 @@
       }
     },
     "error": {
-      "required": "Required field"
+      "required": "Required field",
+      "too_short": "Passphrase must be at least 6 characters",
+      "wrong_passphrase": "Wrong passphrase",
+      "encryption_failed": "Could not encrypt the wallet seed",
+      "decryption_failed": "Could not decrypt the wallet seed"
     },
     "abort": {
-      "already_configured": "This household is already configured"
+      "already_configured": "This household is already configured",
+      "no_encrypted_seed": "No encrypted wallet seed on file for this entry",
+      "reauth_successful": "Wallet seed unlocked for this session"
     }
   },
   "options": {

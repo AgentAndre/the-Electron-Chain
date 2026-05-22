@@ -1,7 +1,7 @@
 {
   "domain": "electron_chain",
   "name": "Electron Chain – Energy Sharing (§42c)",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "documentation": "https://github.com/heutestadtmorgen/electron-chain",
   "issue_tracker": "https://github.com/heutestadtmorgen/electron-chain/issues",
   "codeowners": ["@heutestadtmorgen"],
@@ -12,7 +12,8 @@
     "substrate-interface==1.7.10",
     "py-sr25519-bindings==0.2.0",
     "websockets>=12.0,<14.0",
-    "aiomqtt==2.3.0"
+    "aiomqtt==2.3.0",
+    "cryptography>=42.0.0"
   ],
   "dependencies": ["mqtt"],
   "after_dependencies": [],

@@ -11,7 +11,9 @@ CONF_DID: Final = "did"
 CONF_RPC_URL: Final = "rpc_url"
 CONF_HUB_URL: Final = "hub_url"
 CONF_HUB_API_URL: Final = "hub_api_url"
-CONF_WALLET_SEED: Final = "wallet_seed"
+CONF_WALLET_SEED: Final = "wallet_seed"                # plaintext (transient, never persisted)
+CONF_WALLET_SEED_ENC: Final = "wallet_seed_enc"        # Fernet-wrapped seed (persisted)
+CONF_WALLET_PASSPHRASE: Final = "wallet_passphrase"    # user input only, never persisted
 CONF_HOUSEHOLD_ID: Final = "household_id"
 CONF_COOPERATIVE_ID: Final = "cooperative_id"
 

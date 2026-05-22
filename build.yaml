@@ -6,8 +6,6 @@ build_from:
   i386: ghcr.io/home-assistant/i386-base:3.19
 labels:
   org.opencontainers.image.title: "TheElectronChain"
-  org.opencontainers.image.description: "Trade electricity via Peaq blockchain with Anker Solix and EPEX prices"
-  org.opencontainers.image.source: "https://github.com/peaqnetwork"
+  org.opencontainers.image.description: "ELP-Hub for §42c MaLo communities — order book, matching engine, persistence & cooperative cockpit on the peaq blockchain"
+  org.opencontainers.image.source: "https://github.com/heutestadtmorgen/electron-chain"
   org.opencontainers.image.licenses: "Apache-2.0"
-args:
-  TEMPIO_VERSION: "2021.09.0"

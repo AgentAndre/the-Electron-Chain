@@ -1,5 +1,60 @@
 # Changelog
 
+## [5.0.0] - 2026-05-22
+
+### Architektur — Konversion HA-Integration → Python-Addon
+
+Das Main-Folder Addon ist jetzt der **ELP-Hub** (Electron Ledger Protocol). Der
+bisherige monolithische Node.js Trading-Daemon (v4.1.0, `rootfs/app/index.js`)
+wurde komplett entfernt. Das Addon hostet jetzt die Aggregations- und
+Matching-Schicht für eine §42c-Genossenschaft, während jede HA-Instanz die
+HACS-Integration aus `HA-integration/` als Household-Node fährt.
+
+### Neu
+
+- **Python-Stack** statt Node.js: FastAPI + uvicorn + aiomqtt + aiosqlite
+- **Order Book & Matching-Engine** — uniform-price clearing alle 15 s (konfigurierbar)
+- **SQLite-Persistenz** im /data-Volume mit WAL-Modus und Schema-Versioning
+  (v3 fügt `secrets_vault` für Fernet-Secrets hinzu)
+- **Cooperative Cockpit Dashboard** auf Port 8099 mit virtualisiertem Household-Grid,
+  Canvas-Chart, Order-Book und Match-Stream — server-aggregierte Deltas via WebSocket
+- **REST-API** `/v1/cooperatives/...` für Drittsysteme + Health-Check `/api/health`
+- **Fernet-Wallet-Vault** (`/v1/vault`): PBKDF2-HMAC-SHA256 (480k Iterationen) +
+  Fernet-Wrapper, mit Verifier-Blob gegen Passphrase-Oracle
+- **Grid-Price-Oracle** als MQTT-Retain-Topic `elp/{coop}/grid/price`
+- **Heartbeat-Pruning** automatisch nach `heartbeat_prune_sec` (Default 24 h)
+
+### Geändert
+
+- `config.yaml` schlank getrimmt auf Hub-Settings — Household-spezifische Optionen
+  (Wallet, Adapter, SMGw, PV-Geometrie) liegen jetzt in der HA-Integration
+- Dockerfile auf Alpine + Python 3.11; cryptography, FastAPI, uvicorn, aiomqtt
+  als gepinnte Wheels; Build-Deps werden nach `pip install` weggeräumt
+- Healthcheck zielt jetzt auf `/api/health` (FastAPI)
+- MQTT-Service-Anforderung verschärft: `mqtt:need` (vorher `mqtt:want`)
+
+### HACS-Integration (`HA-integration/custom_components/electron_chain` v0.3.0)
+
+- **Verschlüsselter Wallet-Seed**: Im Config-Flow wird der Seed mit einer
+  User-Passphrase per Fernet eingewickelt; nur das Chiffrat landet im
+  Config-Entry (`wallet_seed_enc`)
+- **Reauth-Flow** nach jedem HA-Restart, der die Passphrase abfragt, den Seed
+  in-memory cached (`hass.data[DOMAIN]['_seeds']`) und ihn beim Unload wieder
+  wegwischt
+- Manifest: neue Requirement `cryptography>=42.0.0`
+
+### Entfernt
+
+- `package.json`, `rootfs/app/index.js` (3632 Zeilen Node.js)
+- `@peaq-network/sdk`, `@polkadot/api`, `ethers`, `express`, `ws`, `dotenv`,
+  `node-cron`, `node-fetch` (Node-Deps)
+
+### Migration
+
+`/data/elp.sqlite` wird beim ersten Start automatisch angelegt. Bestehende
+Node-State-Files unter `/data/` werden nicht angerührt — können aber manuell
+entfernt werden, sobald der Hub stabil läuft.
+
 ## [2.2.0] - 2026-03-20
 
 ### Neu
